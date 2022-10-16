@@ -1,5 +1,5 @@
 # this is the second of 'learning by doing' packages
-# Reference:
+# Reference: https://towardsdatascience.com/image-analysis-for-beginners-creating-a-motion-detector-with-opencv-4ca6faba4b42
 
 import cv2
 import numpy as np
@@ -28,7 +28,7 @@ def run():
             cv2.imshow('Frame', frame)
 
             # Parse the resulting frame
-            motObj.parseFrame(frame)
+            motObj.parse_frame(frame)
 
             # Select video frame, then press Q on keyboard to exit
             if cv2.waitKey(25) & 0xFF == ord('q'):
