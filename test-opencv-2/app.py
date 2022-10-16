@@ -23,17 +23,13 @@ def run():
         # Capture frame-by-frame
         ret, frame = vidObj.read()
         if ret == True:
-
+            # Parse the resulting frame
+            motionDetected, frame = motObj.parse_frame(frame)
             # Display the resulting frame
             cv2.imshow('Frame', frame)
-
-            # Parse the resulting frame
-            motObj.parse_frame(frame)
-
             # Select video frame, then press Q on keyboard to exit
             if cv2.waitKey(25) & 0xFF == ord('q'):
                 break
-
         # End of video stream or file, break the loop
         else:
             break

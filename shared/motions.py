@@ -1,5 +1,4 @@
 """
-    This file contains code for detecting motions in video streams.
     Copyright (c) 2022 Martin Jonasse, Zug, Switzerland
 """
 
@@ -23,7 +22,7 @@ class Motions:
             self.frameDimensions = frame.shape # pixels: (height, width, colors)
             blur = round(self.frameDimensions[0] * self.BLUR_PERCENT / 100)
             self.blur = (blur, blur) # blur range
-            self._init_background_frame(frame) # into self.bgFrame
+            self.bgFrame = self._init_background_frame(frame) # into self.bgFrame
         else:
             raise ValueError('Cannot open first video frame in stream.')
         pass
@@ -41,24 +40,32 @@ class Motions:
     def _init_background_frame(self, frame):
         """ initialize the background frame with the first frame in the stream """
         basicFrame = self._build_basic_frame(frame)
-        self.bgFrame = basicFrame.copy().astype("float") # save frame as float type
-        pass
+        return basicFrame.copy().astype("float") # save frame as float type
 
     def parse_frame(self, frame):
         """ parse one frame in the video stream """
+        motionDetected = False
         basicFrame = self._build_basic_frame(frame)
         # accumulate frame to weighted running average
-        bgFrameCopy = self.bgFrame
         cv2.accumulateWeighted(basicFrame, self.bgFrame, self.FRAME_WEIGHT)
         # build diff between fore- and background
         diffFrame = cv2.absdiff(basicFrame, cv2.convertScaleAbs(self.bgFrame))
         # enhance the diff between fore- and background
         thresholdFrame = cv2.threshold(diffFrame, self.DELTA_THRESH, 255, cv2.THRESH_BINARY)[1]
-        # Display the resulting frame
-        cv2.imshow('Threshold', thresholdFrame)
-        # NOTE: the image shown above, includes "shadows" from previous frames,
-        # ----  basically showing two persons walking instead of one.
-        pass
+        thresholdFrame = cv2.dilate(thresholdFrame, None, iterations=2)
+        # Display the resulting thresholdFrame
+        # cv2.imshow('Threshold', thresholdFrame) # image includes "shadows" from previous frames
+
+        # Add bounding boxes from contours
+        contours, hierarchy = cv2.findContours(thresholdFrame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        minArea = (self.blur[0] * self.blur[1])
+        for i in range(len(contours)):
+            x, y, w, h = cv2.boundingRect(contours[i])
+            if (w * h) > minArea:
+                motionDetected = True
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+        return motionDetected, frame
 
 
 if __name__ == '__main__':
