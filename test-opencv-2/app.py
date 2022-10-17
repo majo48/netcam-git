@@ -2,14 +2,18 @@
 # Reference: https://towardsdatascience.com/image-analysis-for-beginners-creating-a-motion-detector-with-opencv-4ca6faba4b42
 
 import cv2
-import numpy as np
-from shared import motions
+import motions
 
 def run():
     # Create the VideoCapture object and read from input file or stream
     # If the input is the camera, pass 0 instead of the video file name
-    vidObj = cv2.VideoCapture('../clips/vtest.avi')
-    # vidObj = cv2.VideoCapture(0) # access macbook camera works too
+    # vidObj = cv2.VideoCapture(0) # access macbook camera works
+    vidObj = cv2.VideoCapture('../clips/vtest.avi') # works
+    # vidObj = cv2.VideoCapture('../clips/autostrasse.mp4') # works
+    # vidObj = cv2.VideoCapture('../clips/garageausfahrt.mp4') # doesn't work
+    # vidObj = cv2.VideoCapture('../clips/parking-lot1.mp4') # doesn't work
+    # vidObj = cv2.VideoCapture('../clips/parking-lot1.avi') # doesn't work
+    # vidObj = cv2.VideoCapture('../clips/parking-lot2.mp4') # doesn't work
 
     # Check if camera opened successfully
     if (vidObj.isOpened() == False):
