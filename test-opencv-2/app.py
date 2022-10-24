@@ -5,42 +5,48 @@ import cv2
 import motions
 
 def run():
-    # Create the VideoCapture object and read from input file or stream
-    # If the input is the camera, pass 0 instead of the video file name
-    # vidObj = cv2.VideoCapture(0) # access macbook camera works
-    vidObj = cv2.VideoCapture('../clips/vtest.avi') # works
-    # vidObj = cv2.VideoCapture('../clips/autostrasse.mp4') # works
-    # vidObj = cv2.VideoCapture('../clips/garageausfahrt.mp4') # doesn't work
-    # vidObj = cv2.VideoCapture('../clips/parking-lot1.mp4') # doesn't work
-    # vidObj = cv2.VideoCapture('../clips/parking-lot1.avi') # doesn't work
-    # vidObj = cv2.VideoCapture('../clips/parking-lot2.mp4') # doesn't work
+    # List of video clips for testing
+    vidObjNames = [
+        '../clips/vtest.avi',
+        '../clips/autostrasse.mp4',
+        '../clips/garageausfahrt.mp4',
+        '../clips/parking-lot1.mp4',
+        '../clips/parking-lot2.mp4',
+    ]
+    vidObj = None
+    motObj = None
 
-    # Check if camera opened successfully
-    if (vidObj.isOpened() == False):
-        print("Error opening video stream or file")
+    for vidObjName in vidObjNames:
+        print('Processing file: '+vidObjName)
+        # Create the VideoCapture object and read from input file or stream
+        vidObj = cv2.VideoCapture(vidObjName)
+        # Check if camera opened successfully
+        if (vidObj.isOpened() == False):
+            print("Error opening video stream or file")
 
-    # Initialize the motions object
-    motObj = motions.Motions(vidObj)
+        # Initialize the motions object
+        motObj = motions.Motions(vidObj)
 
-    # Read until video is completed
-    while (vidObj.isOpened()):
-        # Capture frame-by-frame
-        ret, frame = vidObj.read()
-        if ret == True:
-            # Parse the resulting frame
-            motionDetected, frame = motObj.parse_frame(frame)
-            # Display the resulting frame
-            cv2.imshow('Frame', frame)
-            # Select video frame, then press Q on keyboard to exit
-            if cv2.waitKey(25) & 0xFF == ord('q'):
+        # Read until video is completed
+        while (vidObj.isOpened()):
+            # Capture frame-by-frame
+            ret, frame = vidObj.read()
+            if ret == True:
+                # Parse the resulting frame
+                motionDetected, frame = motObj.parse_frame(frame)
+                # Display the resulting frame
+                cv2.imshow('Frame', frame)
+                # Select video frame, then press Q on keyboard to exit
+                if cv2.waitKey(25) & 0xFF == ord('q'):
+                    break
+            # End of video stream or file, break the loop
+            else:
                 break
-        # End of video stream or file, break the loop
-        else:
-            break
-
-    # When everything done, release the video capture object +++
-    vidObj.release()
-    del motObj
+        pass # end while
+        # When everything done, release the video capture object +++
+        if vidObj is not None: vidObj.release()
+        if motObj is not None: del motObj
+    pass # end for
 
     # Closes all the frames
     cv2.destroyAllWindows()

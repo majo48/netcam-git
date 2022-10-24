@@ -21,7 +21,9 @@ class Motions:
         if ret:
             self.frameDimensions = frame.shape # pixels: (height, width, colors)
             blur = round(self.frameDimensions[0] * self.BLUR_PERCENT / 100)
-            self.blur = (blur, blur) # blur range
+            if (blur % 2) == 0:
+                blur = blur+1 # Gaussian Kernel Size should be odd
+            self.blur = (blur, blur) # blur range (kernel size)
             self.bgFrame = self._init_background_frame(frame) # into self.bgFrame
         else:
             raise ValueError('Cannot open first video frame in stream.')
