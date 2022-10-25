@@ -18,11 +18,14 @@ def run():
 
     for vidObjName in vidObjNames:
         print('Processing file: '+vidObjName)
+
         # Create the VideoCapture object and read from input file or stream
         vidObj = cv2.VideoCapture(vidObjName)
+
         # Check if camera opened successfully
         if (vidObj.isOpened() == False):
-            print("Error opening video stream or file")
+            print("Error opening video stream or file: "+vidObjName)
+            break
 
         # Initialize the motions object
         motObj = motions.Motions(vidObj)
@@ -43,6 +46,7 @@ def run():
             else:
                 break
         pass # end while
+
         # When everything done, release the video capture object +++
         if vidObj is not None: vidObj.release()
         if motObj is not None: del motObj
