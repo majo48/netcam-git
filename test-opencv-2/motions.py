@@ -55,7 +55,7 @@ class Motions:
         # enhance the diff between fore- and background
         thresholdFrame = cv2.threshold(diffFrame, self.DELTA_THRESH, 255, cv2.THRESH_BINARY)[1]
         thresholdFrame = cv2.dilate(thresholdFrame, None, iterations=2)
-        # Display the resulting thresholdFrame
+        # TESTS: Display the resulting thresholdFrame
         # cv2.imshow('Threshold', thresholdFrame) # image includes "shadows" from previous frames
 
         # Add bounding boxes from contours
