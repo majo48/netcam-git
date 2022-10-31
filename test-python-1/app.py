@@ -33,3 +33,10 @@ if __name__ == "__main__":
             else:
                 ret = 'none intersecting'
             print("Compare "+boxA["name"]+" with "+boxB["name"]+": "+ret+" "+str(rectangle))
+# output [x, y, w, h]:
+# Compare box1 with box2: intersects [5, 5, 5, 5]
+# Compare box1 with box3: none intersecting [20, 20, -10, -10]
+# Compare box1 with box4: intersects [10, 10, 0, 0]
+# Compare box2 with box3: none intersecting [20, 20, -5, -5]
+# Compare box2 with box4: intersects [10, 10, 5, 5]
+# Compare box3 with box4: intersects [20, 20, 0, 0]
