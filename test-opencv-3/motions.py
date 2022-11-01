@@ -3,15 +3,13 @@
 """
 
 import cv2
-import numpy as np
 import os
-from operator import itemgetter
 
 class Motions:
     """ detect motions in video stream frames """
 
-    BG_SUB_METHODE = 'MOG2' # backgrounde subtraction methode: ( 'MOG2', 'KNN')
-    FG_MIN_AREA = 500 # minimal size of green boxes
+    BG_SUB_METHODE = 'MOG2' # background subtraction methodes are: ( 'MOG2', 'KNN')
+    FG_MIN_AREA = 500       # minimal size of green boxes (sensitivity)
 
     def __init__(self, vidObj):
         """ create instance of motions """
@@ -71,10 +69,6 @@ class Motions:
                     'x': x, 'y': y, 'w': w, 'h': h,
                     'x2': x + w, 'y2': y + h, 'area': area,
                     'order': i, 'valid': True })
-                # display the contours in red
-                # if frame is not None:
-                #     cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 0, 255), 10)
-
         # check for overlaps
         for i in range(len(boxes)):
             box1 = boxes[i]
@@ -101,6 +95,7 @@ class Motions:
         intersects = True
         if w < 0 or h < 0:
             intersects = False
+        # finished
         return intersects, [x, y, w, h]
 
     def _merge_boxes(self, box1, box2):

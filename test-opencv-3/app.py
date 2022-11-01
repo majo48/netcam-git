@@ -17,10 +17,15 @@ def run():
     motObj = None
 
     for vidObjName in vidObjNames:
-        print('Processing file: '+vidObjName)
 
         # Create the VideoCapture object and read from input file or stream
         vidObj = cv2.VideoCapture(vidObjName)
+
+        # statistics
+        fps = vidObj.get(cv2.CAP_PROP_FPS)
+        w = vidObj.get(3)  # float `width`
+        h = vidObj.get(4)  # float `height`
+        print('Processing file: ' + vidObjName+' ,'+str(int(fps))+' fps, '+str(int(w))+'x'+str(int(h))+' pixels.')
 
         # Check if camera opened successfully
         if (vidObj.isOpened() == False):
