@@ -1,9 +1,9 @@
 # proof of concept
 def intersect(boxA, boxB):
     """
-        check if two rectangles intersect, using opencv coordinates
-        e.g. top left is [0, 0], both x and y ascending (>0)
-        this may return an empty area (with w * h == 0)
+        Check if two rectangles intersect, using opencv coordinates,
+        defined as: top left is [0, 0], both x and y ascending (>0).
+        This can return a positive result, with an empty area (w*h == 0).
     """
     x = max(boxA["x"], boxB["x"])
     y = max(boxA["y"], boxB["y"])
@@ -33,6 +33,7 @@ if __name__ == "__main__":
             else:
                 ret = 'none intersecting'
             print("Compare "+boxA["name"]+" with "+boxB["name"]+": "+ret+" "+str(rectangle))
+
 # output [x, y, w, h]:
 # Compare box1 with box2: intersects [5, 5, 5, 5]
 # Compare box1 with box3: none intersecting [20, 20, -10, -10]
