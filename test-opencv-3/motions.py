@@ -6,7 +6,12 @@ import cv2
 import os
 
 class Motions:
-    """ detect motions in video stream frames """
+    """
+        detect motions in video stream frames,
+        using:
+        1. built-in background subtraction methodes (opencv)
+        2. reduce overlapping contour boxes (custom)
+    """
 
     BG_SUB_METHODE = 'MOG2' # background subtraction methodes are: ( 'MOG2', 'KNN')
     FG_MIN_AREA = 500       # minimal size of green boxes (sensitivity)

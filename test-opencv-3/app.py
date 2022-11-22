@@ -1,5 +1,6 @@
-# this is the second of 'learning by doing' packages
+# this is the third of 'learning by doing' packages
 # Reference: https://towardsdatascience.com/image-analysis-for-beginners-creating-a-motion-detector-with-opencv-4ca6faba4b42
+# upgrade from version 2: added some statistics to file names (fps, pixels)
 
 import cv2
 import motions
