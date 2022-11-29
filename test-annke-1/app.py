@@ -7,8 +7,8 @@ import imutils
 from imutils.video import VideoStream
 from dotenv import load_dotenv
 
-# replace url credentials from the .env file (see python-dotenv package)
 rtsp_url = "rtsp://<user>:<password>@192.168.1.54:554/H264/ch1/main/av_stream"
+# replace url credentials from the .env file (see python-dotenv package)
 load_dotenv()
 rtsp_url = rtsp_url.replace('<user>', os.getenv('ANNKE_USER'))
 rtsp_url = rtsp_url.replace('<password>', os.getenv('ANNKE_PASSWORD'))
