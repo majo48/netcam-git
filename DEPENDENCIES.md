@@ -1,12 +1,17 @@
-# dependencies : version numbers
+# DEPENDENCIES : version numbers
 
-Python interpreter: 3.9
+Python interpreter: 3.9/3.10
 
 Basic packages: 
 - pip: 22.2.2
 - setuptools: 65.3.0
 - wheel: 0.37.1
 
-Network camera packages:
+Application packages:
 - opencv-contrib-python: 4.6.0.66
-  - numpy: 1.23.4
+- Flask: 2.2.2
+
+Operating systems:
+- MacBook: macOS Monteray 12.6.2
+- VPS: Ubunto 22.04
+  - Apache: 2.2.4

@@ -21,4 +21,4 @@ Serve the pages using Apache via WSGI which helps to get our code deployed on Ap
             Allow from all
         </Directory>
 
-</VirtualHost>
+    </VirtualHost>
