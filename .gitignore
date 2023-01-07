@@ -128,7 +128,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# custom for netcam projects
+# custom for netcam-git projects
 eval/
 vmware/
 docs/
