@@ -1,11 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
-<ul class="menu-items">
-    <li><a href="{{url_for('tiles') }}">tiles</a></li>
-    <li><a href="{{url_for('clips', period='daily') }}">clips, daily</a></li>
-    <li><a href="{{url_for('clips', period='weekly') }}">clips, weekly</a></li>
-    <li><a href="{{url_for('clips', period='monthly') }}">clips, monthly</a></li>
-    <li><a href="{{url_for('states') }}">states</a></li>
-    <li><a href="{{url_for('logs') }}">logs</a></li>
-</ul>
-    {% endblock content %}
+<div class="menu-buttons">
+    <button type=button
+            onClick="navigateTo('http://{{request.host}}{{url_for('tiles')}}');">tiles
+    </button>
+    <button type=button
+            onClick="navigateTo('http://{{request.host}}{{url_for('clips',period='daily')}}')">clips, daily
+    </button>
+    <button type=button
+            onClick="navigateTo('http://{{request.host}}{{url_for('clips',period='weekly')}}')">clips, weekly
+    </button>
+    <button type=button
+            onClick="navigateTo('http://{{request.host}}{{url_for('clips',period='monthly')}}')">clips, monthly
+    </button>
+    <button type=button
+            onClick="navigateTo('http://{{request.host}}{{url_for('states')}}')">states
+    </button>
+    <button type=button
+            onClick="navigateTo('http://{{request.host}}{{url_for('logs')}}')">logs
+    </button>
+</div>
+{% endblock content %}
