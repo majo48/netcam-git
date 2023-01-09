@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="name" content="majo48">
+    <meta name="description" content="Flask netcam project">
+    <title>netcam-git</title>
+</head>
+<link rel= "stylesheet" type= "text/css"
+      href= "{{ url_for('static',filename='hamburger.css') }}"
+>
+<body>
+    <input  type="checkbox" id="hamburger-menu-checkbox"
+            {% if navIcon != "hamburger" %}checked{% endif %}>
+    <label for="hamburger-menu-checkbox">
+        <span></span>
+    </label>
+    <div>
+        {% block content %}
+        {% endblock content %}
+    </div>
+</body>
+</html>
