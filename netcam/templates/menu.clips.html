@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<ul class="menu-items">
+    <li><a href="{{url_for('clips', period='daily') }}">clips, daily</a></li>
+    <li><a href="{{url_for('clips', period='weekly') }}">clips, weekly</a></li>
+    <li><a href="{{url_for('clips', period='monthly') }}">clips, monthly</a></li>
+</ul>
+{% endblock content %}
