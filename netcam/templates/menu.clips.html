@@ -1,13 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="menu-buttons">
-    <button type=button class="btn-menu selected"
-            onClick="navigateTo('http://{{request.host}}{{url_for('clips',period='daily')}}')">clips, daily
+<div class="menu-container">
+    <br>
+    <button type=button class="btn btn-beta"
+            onClick="navigateTo('http://{{request.host}}{{url_for('clips',period='daily')}}')">
+        <span>CLIPS > DAILY</span>
     </button>
-    <button type=button class="btn-menu"
-            onClick="navigateTo('http://{{request.host}}{{url_for('clips',period='weekly')}}')">clips, weekly
+    <br><br>
+    <button type=button class="btn btn-beta"
+            onClick="navigateTo('http://{{request.host}}{{url_for('clips',period='weekly')}}')">
+        <span>CLIPS > WEEKLY</span>
     </button>
-    <button type=button class="btn-menu"
-            onClick="navigateTo('http://{{request.host}}{{url_for('clips',period='monthly')}}')">clips, monthly
+    <br><br>
+    <button type=button class="btn btn-beta"
+            onClick="navigateTo('http://{{request.host}}{{url_for('clips',period='monthly')}}')">
+        <span>CLIPS > MONTHLY</span>
     </button>
+    <br><br>
 </div>{% endblock content %}

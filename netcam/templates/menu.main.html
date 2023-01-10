@@ -1,23 +1,36 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="menu-buttons">
-    <button type=button class="btn-menu selected"
-            onClick="navigateTo('http://{{request.host}}{{url_for('tiles')}}');">tiles
+<div class="menu-container">
+    <br>
+    <button type=button class="btn btn-alpha"
+            onClick="navigateTo('http://{{request.host}}{{url_for('tiles')}}');">
+        <span>TILES</span>
     </button>
-    <button type=button class="btn-menu"
-            onClick="navigateTo('http://{{request.host}}{{url_for('clips',period='daily')}}')">clips, daily
+    <br><br>
+    <button type=button class="btn btn-beta"
+            onClick="navigateTo('http://{{request.host}}{{url_for('clips',period='daily')}}')">
+        <span>CLIPS > DAILY</span>
     </button>
-    <button type=button class="btn-menu"
-            onClick="navigateTo('http://{{request.host}}{{url_for('clips',period='weekly')}}')">clips, weekly
+    <br><br>
+    <button type=button class="btn btn-beta"
+            onClick="navigateTo('http://{{request.host}}{{url_for('clips',period='weekly')}}')">
+        <span>CLIPS > WEEKLY</span>
     </button>
-    <button type=button class="btn-menu"
-            onClick="navigateTo('http://{{request.host}}{{url_for('clips',period='monthly')}}')">clips, monthly
+    <br><br>
+    <button type=button class="btn btn-beta"
+            onClick="navigateTo('http://{{request.host}}{{url_for('clips',period='monthly')}}')">
+        <span>CLIPS > MONTHLY</span>
     </button>
-    <button type=button class="btn-menu"
-            onClick="navigateTo('http://{{request.host}}{{url_for('states')}}')">states
+    <br><br>
+    <button type=button class="btn btn-delta"
+            onClick="navigateTo('http://{{request.host}}{{url_for('logs')}}')">
+        <span>LOGS</span>
     </button>
-    <button type=button class="btn-menu"
-            onClick="navigateTo('http://{{request.host}}{{url_for('logs')}}')">logs
+    <br><br>
+    <button type=button class="btn btn-gamma"
+            onClick="navigateTo('http://{{request.host}}{{url_for('states')}}')">
+        <span>STATES</span>
     </button>
+    <br><br>
 </div>
 {% endblock content %}

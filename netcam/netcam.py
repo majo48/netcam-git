@@ -43,12 +43,11 @@ def menu_clips():
             "url": url_for("home", _external=True) }
     )
 
-@app.route("/clips/daily")
-@app.route("/clips/weekly")
-@app.route("/clips/monthly")
-def clips(period="daily"):
+@app.route("/clips/<period>")
+def clips(period):
     return render_template(
         template_name_or_list='clips.html',
+        period=period,
         navigation={
             "icon": "cross",
             "url": url_for("home", _external=True) }

@@ -1,1 +1,69 @@
+/*
+    Copyright (c) 2022 Martin Jonasse, Zug, Switzerland
+    Acknowledgements: codepen.io
+*/
+/* container design */
+body {
+  color: white;    /* font */
+  font-family: Courier, serif;
+  font-size: 16px;
+  background: black;
+}
+
+.menu-container {
+  text-align: center;
+  margin: 40px;
+}
+
+/* button design */
+.btn {
+  font-family: Courier, serif;
+  position: relative;
+  width: 350px;
+  height: 60px;
+  color: black;    /* font */
+  margin: 0 auto;
+  overflow: hidden;
+  font-size: 30px;
+  font-weight: bold;
+  line-height: 60px;
+  text-align: center;
+  border: none;
+  transition: color .3s;
+  cursor: pointer;
+  z-index: 1;
+}
+.btn-alpha {
+  background: #21D4FD;
+}
+.btn-beta {
+  background: #08AEEA;
+}
+.btn-gamma {
+  background: #FEE140;
+}
+.btn-delta {
+  background: #3EECAC;
+}
+
+.btn:after {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: green; /* background color on hover */
+  content: "";
+  z-index: -2;
+  transition: transform .3s;
+}
+
+.btn:hover::after {
+  transform: translateY(-100%);
+  transition: transform .3s;
+}
+
+.btn:focus, .button:active,  .button:visited{
+  outline: none;
+}
 
