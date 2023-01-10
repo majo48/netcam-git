@@ -82,4 +82,7 @@ def logs():
 
 
 if __name__ == "__main__":
+    # run in development environment only, no external access possible (safe)
     app.run()
+    # run on all IP addresses, external access allowed (unsafe)
+    # app.run(host='0.0.0.0', port=5000)
