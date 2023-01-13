@@ -53,8 +53,14 @@ def clips(period):
             "url": url_for("home", _external=True) }
     )
 
-@app.route("/clip/timestamp")
-def clip():
+@app.route("/clip/<clipdate>/<cliptime>")
+def clip(clipdate, cliptime):
+    """
+        render the videoclip defined by clipdate and cliptime
+    :param clipdate: string, format: yyyy-mm-dd
+    :param cliptime: string, format: hh:mm:ss.mmm
+    :return: template rendered with information
+    """
     return render_template(
         template_name_or_list='clip.html',
         navigation={

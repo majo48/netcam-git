@@ -1,4 +1,4 @@
-#static
+#netcam/static
 - Flash standard folder
-- this folder contains CSS and JS files for styling the website
+- this folder contains CSS PNG and JS files for styling the website
  
