@@ -14,21 +14,18 @@
     </script>
 </head>
 <link rel="stylesheet" type="text/css"
-      href="{{ url_for('static',filename='hamburger.css') }}"
->
-<link rel="stylesheet" type="text/css"
       href="{{ url_for('static',filename='menus.css') }}"
 >
 <body>
-    <input  type="checkbox" id="hamburger-menu-checkbox"
-            onClick="navigateTo('{{ navigation.url }}')"
-            {% if navigation.icon != "hamburger" %}checked{% endif %}>
-    <label for="hamburger-menu-checkbox">
-        <span></span>
-    </label>
-    <div>
+    <main>
+        <!-- content -->
         {% block content %}
         {% endblock content %}
-    </div>
+        <!-- floating hamburger or cross -->
+        <nav class="floating-menu">
+            <img src="/static/{{navigation.icon}}.png"
+                 onClick="navigateTo('{{navigation.url}}')" />
+        </nav>
+    </main>
 </body>
 </html>
