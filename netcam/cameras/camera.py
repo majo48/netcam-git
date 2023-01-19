@@ -5,7 +5,6 @@ import queue
 from imutils.video import VideoStream
 import os
 import threading
-import logging
 
 
 class Camera(threading.Thread):
@@ -21,6 +20,7 @@ class Camera(threading.Thread):
         self.frame_count = 0 # frame count
         self.skipped_frames = 0 # counts the number of frames skipped
         self.qq = queue.Queue(maxsize=1) # interface to other threads
+        self.keep_running = True
 
     def run(self):
         """
@@ -28,9 +28,9 @@ class Camera(threading.Thread):
         """
         thread = threading.currentThread()
         vs = VideoStream(self.rtsp_url).start()
-        logging.info("Started video stream in thread '" + thread.name + "'\n")
+        print("Start video stream in thread '" + thread.name + "'\n")
         # loop through all frames provided by the camera stream
-        while True:
+        while self.keep_running:
             # get frames from camera (blocking)
             frame = vs.read()
             # check frame
@@ -58,6 +58,10 @@ class Camera(threading.Thread):
         """ get frame (with blocking) """
         return self.qq.get(block=True, timeout=None)
 
+    def terminate_thread(self):
+        """ stop running this thread, called when main thread terminates """
+        self.keep_running = False
+        pass # try again
 
 if __name__ == '__main__':
     print(

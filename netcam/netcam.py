@@ -3,7 +3,7 @@
 from flask import Flask
 from flask import render_template
 from flask import url_for
-from flask import make_response
+from flask import Response
 import cv2
 
 
@@ -12,22 +12,30 @@ app = Flask(__name__)
 @app.route("/")
 @app.route("/home")
 def home():
-    idx=0
+    idx=0 # default, first camera
     return render_template(
         template_name_or_list='home.html',
         navigation={
             "icon": "hamburger",
             "url": url_for("menu_main", _external=True) },
-        index=idx
+        index={
+            "current": str(idx),
+            "max": str(len(thrds)) }
     )
 
 @app.route("/video_feed/<idx>")
 def video_feed(idx):
-    frm = thrds[int(idx)].get_frame() # blocking
-    retval, buffer = cv2.imencode('.png', frm)
-    response = make_response(buffer.tobytes())
-    response.headers['Content-Type'] = 'image/png'
-    return response
+    return Response(
+        generate_frames(idx),
+        mimetype='multipart/x-mixed-replace; boundary=frame')
+
+def generate_frames(idx):
+    while True:
+        frame = thrds[int(idx)].get_frame()
+        retval, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 @app.route("/menu/main")
 def menu_main():
@@ -126,6 +134,7 @@ if __name__ == "__main__":
     # [unsafe] run on all IP addresses, external access allowed
     # app.run(debug=True, use_reloader=False, host='0.0.0.0', port=5000)
 
-    # kill threads
+    # stop and kill threads
     for thrd in thrds:
+        thrd.terminate_thread()
         thrd.join()
