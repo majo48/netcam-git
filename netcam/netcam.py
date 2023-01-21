@@ -5,6 +5,7 @@ from flask import render_template
 from flask import url_for
 from flask import Response
 import cv2
+import imutils
 
 
 app = Flask(__name__)
@@ -30,12 +31,15 @@ def video_feed(idx):
         mimetype='multipart/x-mixed-replace; boundary=frame')
 
 def generate_frames(idx):
+    """ get synced frame from cameras[idx] (blocking) """
     while True:
-        frame = thrds[int(idx)].get_frame()
+        count = thrds[int(idx)].get_frame_count()
+        # convert frame to low resolution jpeg (smooth html video viewing)
+        frame = imutils.resize(thrds[int(idx)].get_frame(), width=810)
         retval, buffer = cv2.imencode('.jpg', frame)
-        frame = buffer.tobytes()
+        # stream to template to browser
         yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
 
 @app.route("/menu/main")
 def menu_main():
@@ -129,10 +133,10 @@ if __name__ == "__main__":
     thrds = setup_threads()
 
     # [safe] run Flask webserver in development environment only, no external access possible (safe)
-    app.run(debug=True, use_reloader=False) # or comment + uncomment the last line of code
+    app.run(debug=True, use_debugger=False, use_reloader=False) # or comment + uncomment the last line of code
 
     # [unsafe] run on all IP addresses, external access allowed
-    # app.run(debug=True, use_reloader=False, host='0.0.0.0', port=5000)
+    # app.run(debug=True, use_debugger=False, use_reloader=False, host='0.0.0.0', port=5000)
 
     # stop and kill threads
     for thrd in thrds:

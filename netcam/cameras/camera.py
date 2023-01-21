@@ -1,8 +1,6 @@
 # Copyright (c) 2022 Martin Jonasse, Zug, Switzerland
 
 import cv2
-import queue
-from imutils.video import VideoStream
 import os
 import threading
 
@@ -17,9 +15,11 @@ class Camera(threading.Thread):
         threading.Thread.__init__(self)
         self.idx = idx # thread index
         self.rtsp_url = rtsp_url # url of the external camera
+        self.frame = None
         self.frame_count = 0 # frame count
-        self.skipped_frames = 0 # counts the number of frames skipped
-        self.qq = queue.Queue(maxsize=1) # interface to other threads
+        self.skipped = 0 # skipped count
+        self.sync_event = threading.Event()
+        self.sync_event.clear() # not set
         self.keep_running = True
 
     def run(self):
@@ -27,41 +27,41 @@ class Camera(threading.Thread):
         open/connect video stream from one physical video camera
         """
         thread = threading.currentThread()
-        vs = VideoStream(self.rtsp_url).start()
-        print("Start video stream in thread '" + thread.name + "'\n")
+        stream = cv2.VideoCapture(self.rtsp_url)
+        print("Started video stream in thread '" + thread.name + "'\n")
         # loop through all frames provided by the camera stream
         while self.keep_running:
-            # get frames from camera (blocking)
-            frame = vs.read()
+            # get one frame from camera
+            ret, self.frame = stream.read()
             # check frame
-            if frame is None:
-                # todo: add some proper error handling here
-                continue
+            if self.frame is None:
+                self.skipped += 1
+                continue # todo: add some proper error handling here
             # increment frame count
             self.frame_count += 1
-            # put one frame in the queue
-            try:
-                self.qq.put(frame, block=False)
-            except queue.Full:
-                # queue already has a frame (not consumed)
-                self.skipped_frames += 1
-            pass # keep on looping
+            # start consumer threads waiting in get_frame()
+            self.sync_event.set()
 
+        print("Stopped video stream in thread '" + thread.name + "'\n")
         cv2.destroyAllWindows()
-        vs.stop()
+        stream.release()
 
     def get_frame_count(self):
         """ get the frame count """
         return self.frame_count
 
     def get_frame(self):
-        """ get frame (with blocking) """
-        return self.qq.get(block=True, timeout=None)
+        """ get frame from provider (this instance) """
+        # wait for sync
+        self.sync_event.wait()
+        # restart the consumer task
+        return self.frame
 
     def terminate_thread(self):
         """ stop running this thread, called when main thread terminates """
         self.keep_running = False
         pass # try again
+
 
 if __name__ == '__main__':
     print(
