@@ -34,7 +34,9 @@ def video_feed(idx):
 def generate_frames(idx):
     """
     get synced frame from cameras[idx] (blocking)
-    note: width=810 accounts for 56% CPU load on macbook.local
+    note#1: width=810 accounts for 56% CPU load on macbook.local
+    note#2: background, w.o. display of video_stream, accounts for 7.3% CPU load
+    todo: improve efficiency of video streaming to web browsers by >50%
     """
     while True:
         # count = thrds[int(idx)].get_frame_count()
