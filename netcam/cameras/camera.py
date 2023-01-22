@@ -15,13 +15,13 @@ class Camera(threading.Thread):
         """
         threading.Thread.__init__(self)
         self.idx = idx # thread index
-        self.rtsp_url = rtsp_url # url of the external camera
-        self.frame = None
+        self.rtsp_url = rtsp_url # url of the external camera or webcam index
+        self.frame = None # frame shared with consumer threads
         self.frame_count = 0 # frame count
         self.skipped = 0 # skipped count
         self.sync_event = threading.Event()
         self.sync_event.clear() # not set
-        self.keep_running = True
+        self.keep_running = True # maintain video streaming from this camera
 
     def run(self):
         """
@@ -29,7 +29,7 @@ class Camera(threading.Thread):
         """
         thread = threading.currentThread()
         stream = cv2.VideoCapture(self.rtsp_url)
-        logging.info("Started video stream in thread '" + thread.name)
+        logging.info(">>> Started video stream in thread '" + thread.name)
         # loop through all frames provided by the camera stream
         while self.keep_running:
             # get one frame from camera
@@ -43,7 +43,7 @@ class Camera(threading.Thread):
             # start consumer threads waiting in get_frame()
             self.sync_event.set()
 
-        logging.info("Stopped video stream in thread '" + thread.name)
+        logging.info("<<< Stopped video stream in thread '" + thread.name)
         cv2.destroyAllWindows()
         stream.release()
 

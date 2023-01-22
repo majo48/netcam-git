@@ -51,8 +51,12 @@ class Config:
         url = url.replace('<user>', self.user)
         url = url.replace('<password>', self.password)
         if (index >= 0) and (index < len(self.ips)):
-            url = url.replace('<ip>', self.ips[index])
-            return url
+            ip = self.ips[index]
+            if ip.isnumeric(): # integer
+                return int(ip) # webcam index
+            else:              # string
+                url = url.replace('<ip>', ip) # ip address string
+                return url
         else:
             raise Exception('Network camera device index is out of range.')
 
