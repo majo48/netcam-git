@@ -7,6 +7,8 @@ from flask import Response
 import cv2
 import imutils
 from cameras import config
+import logging
+import sys
 
 
 app = Flask(__name__)
@@ -39,7 +41,7 @@ def generate_frames(idx):
     todo: improve efficiency of video streaming to web browsers by >50%
     """
     while True:
-        # count = thrds[int(idx)].get_frame_count()
+        # [debug] count = thrds[int(idx)].get_frame_count()
         # convert frame to low resolution jpeg (smooth html video viewing)
         frame = imutils.resize(thrds[int(idx)].get_frame(), width=810)
         retval, buffer = cv2.imencode('.jpg', frame)
@@ -87,7 +89,7 @@ def clips(period):
 @app.route("/clip/<clipdate>/<cliptime>")
 def clip(clipdate, cliptime):
     """
-        render the videoclip defined by clipdate and cliptime
+    render the videoclip defined by clipdate and cliptime
     :param clipdate: string, format: yyyy-mm-dd
     :param cliptime: string, format: hh:mm:ss.mmm
     :return: template rendered with information
@@ -117,28 +119,60 @@ def logs():
             "url": url_for("home", _external=True) }
     )
 
-def setup_threads():
+def setup_threads(cnfg):
     """ setup all threads needed for this app """
-    from cameras import config
-    conf = config.Config()
-    ips = conf.get_ip_adresse_list()
+    ips = cnfg.get_ip_adresse_list()
     from cameras import camera
     cams = []
     for idx, ip in enumerate(ips):
-        url = conf.get_rtsp_url(idx)
-        cam = camera.Camera(idx,url)
-        cam.daemon = True
-        cam.start()
+        url = cnfg.get_rtsp_url(idx)
+        cam = camera.Camera(idx,url) # instantiate a camera feed
+        cam.daemon = True # define feed as daemon thread
+        cam.start() # start daemon camera thread
         cams.append(cam)
-    return conf, cams
+    return cams
+
+def setup_logging():
+    """ setup logging for development and production environments """
+    myfmt = '%(asctime)s | %(levelname)s | %(threadName)s | %(module)s | %(message)s'
+    cnfg = config.Config()
+    if cnfg.is_debug_mode():
+        # basic configuration for development environment
+        logging.basicConfig(
+            format=myfmt,
+            filename=cnfg.get_log_filename(),
+            filemode='w',
+            encoding='utf-8',
+            level='DEBUG')
+        # also send logs to the console
+        lggr = logging.getLogger()
+        lggr.setLevel(logging.DEBUG)
+        hndlr = logging.StreamHandler(sys.stdout)
+        hndlr.setLevel(logging.DEBUG)
+        hndlr.setFormatter(logging.Formatter(myfmt))
+        lggr.addHandler(hndlr)
+    else:
+        # basic configuration for production environment
+        logging.basicConfig(
+            format=myfmt,
+            filename=cnfg.get_log_filename(),
+            filemode='a',
+            encoding='utf-8',
+            level='INFO')
+    return cnfg
 
 
 if __name__ == "__main__":
     """ initialize the netcam app """
-    # setup all threads needed for the application
-    conf, thrds = setup_threads()
+    # setup logging
+    cnfg = setup_logging()
+    logging.info(">>> Start Flask application '"+app.name+"'")
 
-    if conf.is_debug_mode():
+    # setup all threads needed for the application
+    thrds = setup_threads(cnfg)
+
+    # run Flask server
+    if cnfg.is_debug_mode():
         # [safe] run Flask webserver in development environment only, no external access possible (safe)
         app.run(debug=True, use_debugger=False, use_reloader=False) # or comment + uncomment the last line of code
 
@@ -152,3 +186,5 @@ if __name__ == "__main__":
     for thrd in thrds:
         thrd.terminate_thread()
         thrd.join()
+    # finished log message
+    logging.info("<<< Stop Flask application '"+app.name+"'")

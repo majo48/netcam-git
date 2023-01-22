@@ -3,6 +3,7 @@
 import cv2
 import os
 import threading
+import logging
 
 
 class Camera(threading.Thread):
@@ -28,7 +29,7 @@ class Camera(threading.Thread):
         """
         thread = threading.currentThread()
         stream = cv2.VideoCapture(self.rtsp_url)
-        print("Started video stream in thread '" + thread.name + "'\n")
+        logging.info("Started video stream in thread '" + thread.name)
         # loop through all frames provided by the camera stream
         while self.keep_running:
             # get one frame from camera
@@ -42,7 +43,7 @@ class Camera(threading.Thread):
             # start consumer threads waiting in get_frame()
             self.sync_event.set()
 
-        print("Stopped video stream in thread '" + thread.name + "'\n")
+        logging.info("Stopped video stream in thread '" + thread.name)
         cv2.destroyAllWindows()
         stream.release()
 

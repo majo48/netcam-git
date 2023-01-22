@@ -16,6 +16,9 @@ class Config:
     - Hardware information will define the DEBUG_MODE: True or False
     - Other information can be defined as constants in this config.py file
     """
+    DEVELOPMENT_LOGFILE_NAME = 'netcam.log'
+    PRODUCTION_LOGFILE_NAME = '/var/log/netcam.log'
+
     def __init__(self):
         """ initialize an instance of the class """
         load_dotenv()
@@ -61,3 +64,9 @@ class Config:
         """ get inverted DEBUG_MODE variable """
         return not self.is_debug_mode()
 
+    def get_log_filename(self):
+        """ get the current logfile (relative or absolute) """
+        if self.is_debug_mode():
+            return self.DEVELOPMENT_LOGFILE_NAME
+        else:
+            return self.PRODUCTION_LOGFILE_NAME
