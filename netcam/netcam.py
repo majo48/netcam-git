@@ -36,14 +36,14 @@ def video_feed(idx):
 def generate_frames(idx):
     """
     get synced frame from cameras[idx] (blocking)
-    note#1: width=810 accounts for 56% CPU load on macbook.local
+    note#1: width=1920 (Full-HD) accounts for 16% CPU load (user) on macbook,
+            while notebook is yielding the .jpg's to an iPad (WiFi connection).
     note#2: background, w.o. display of video_stream, accounts for 7.3% CPU load
-    todo: improve efficiency of video streaming to web browsers by >50%
     """
     while True:
         # [debug] count = thrds[int(idx)].get_frame_count()
         # convert frame to low resolution jpeg (smooth html video viewing)
-        frame = imutils.resize(thrds[int(idx)].get_frame(), width=810)
+        frame = imutils.resize(thrds[int(idx)].get_frame(), width=1920)
         retval, buffer = cv2.imencode('.jpg', frame)
         # stream to template to browser
         yield (b'--frame\r\n'
@@ -174,10 +174,10 @@ if __name__ == "__main__":
     # run Flask server
     if cnfg.is_debug_mode():
         # [safe] run Flask webserver in development environment only, no external access possible (safe)
-        app.run(debug=True, use_debugger=False, use_reloader=False) # or comment + uncomment the last line of code
+        # app.run(debug=True, use_debugger=False, use_reloader=False) # or comment + uncomment the last line of code
 
         # [unsafe] run on all IP addresses, external access allowed
-        # app.run(debug=True, use_debugger=False, use_reloader=False, host='0.0.0.0', port=5000)
+        app.run(debug=True, use_debugger=False, use_reloader=False, host='0.0.0.0', port=5000)
     else:
         # run in production mode
         app.run(debug=False, use_debugger=False, use_reloader=False)
