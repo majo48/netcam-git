@@ -111,13 +111,27 @@ def states():
     )
 
 @app.route("/logs")
-def logs():
+@app.route("/logs/<index>")
+def logs(index=''):
+    log_items = get_log_items(index)
     return render_template(
         template_name_or_list='logs.html',
         navigation={
             "icon": "cross",
-            "url": url_for("home", _external=True) }
+            "url": url_for("home", _external=True) },
+        logs=log_items
     )
+
+def get_log_items(index):
+    """ get filtered logs """
+    log_items = []
+    fp = open(cnfg.get_log_filename())
+    while True:
+        item = fp.readline()
+        if len(item) == 0:
+            break
+        log_items.append(item)
+    return log_items
 
 def setup_threads(cnfg):
     """ setup all threads needed for this app """

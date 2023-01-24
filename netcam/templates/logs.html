@@ -1,5 +1,41 @@
 {# Copyright (c) 2022 Martin Jonasse, Zug, Switzerland #}
 {% extends "base.html" %}
 {% block content %}
-<p>Logs page, work in progress.</p>
+<style>
+    .navbar {
+        overflow: hidden;
+        background-color: black;
+        position: fixed;
+        left: 100px;
+        top: 10px;
+    }
+
+    .navbar a {
+        float: left;
+        display: block;
+        color: orange;
+        text-align: center;
+        padding: 14px 16px;
+        text-decoration: none;
+        font-size: 17px;
+    }
+
+    .navbar a:hover {
+        background: #3EECAC;
+        color: black;
+    }
+</style>
+ <div class="navbar">
+  <a href="{{url_for('logs',index='all')}}">ALL</a>
+  <a href="{{url_for('logs',index='info')}}">INFO+</a>
+  <a href="{{url_for('logs',index='debug')}}">DEBUG+</a>
+  <a href="{{url_for('logs',index='warning')}}">WARNING+</a>
+  <a href="{{url_for('logs',index='error')}}">ERROR+</a>
+  <a href="{{url_for('logs',index='critical')}}">CRITICAL+</a>
+</div>
+<div style="padding: 16px; margin-top: 30px;">
+{% for log in logs %}
+  <p>{{log}}</p>
+{% endfor %}
 {% endblock content %}
+</div>
