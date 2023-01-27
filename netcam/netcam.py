@@ -41,7 +41,7 @@ def generate_frames(idx):
     note#2: background, w.o. display of video_stream, accounts for 7.3% CPU load
     """
     while True:
-        # [debug] count = thrds[int(idx)].get_frame_count()
+        # todo: add heartbeat test in order to avoid permanent threads
         # convert frame to low resolution jpeg (smooth html video viewing)
         frame = imutils.resize(thrds[int(idx)].get_frame(), width=1920)
         retval, buffer = cv2.imencode('.jpg', frame)

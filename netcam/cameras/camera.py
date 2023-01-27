@@ -16,7 +16,7 @@ class Camera(threading.Thread):
         threading.Thread.__init__(self)
         self.idx = idx # thread index
         self.rtsp_url = rtsp_url # url of the external camera or webcam index
-        self.frame = None # frame shared with consumer threads
+        self.frame = None # todo: replace with Semaphor protection (avoid simultaneous read & write)
         self.frame_count = 0 # frame count
         self.skipped = 0 # skipped count
         self.sync_event = threading.Event()
