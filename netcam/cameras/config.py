@@ -74,3 +74,10 @@ class Config:
             return self.DEVELOPMENT_LOGFILE_NAME
         else:
             return self.PRODUCTION_LOGFILE_NAME
+
+
+if __name__ == '__main__':
+    print(
+        'So sorry, the ' +
+        os.path.basename(__file__) +
+        ' module does not run as a standalone.')

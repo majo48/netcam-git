@@ -34,16 +34,11 @@ def video_feed(idx):
         mimetype='multipart/x-mixed-replace; boundary=frame')
 
 def generate_frames(idx):
-    """
-    get synced frame from cameras[idx] (blocking)
-    note#1: width=1920 (Full-HD) accounts for 16% CPU load (user) on macbook,
-            while notebook is yielding the .jpg's to an iPad (WiFi connection).
-    note#2: background, w.o. display of video_stream, accounts for 7.3% CPU load
-    """
+    """ get synced frame from cameras[idx] (blocking) """
     while True:
         # todo: add heartbeat test in order to avoid permanent threads
         # convert frame to low resolution jpeg (smooth html video viewing)
-        frame = imutils.resize(thrds[int(idx)].get_frame(), width=1920)
+        frame = thrds[int(idx)].get_frame_picture(width=960)
         retval, buffer = cv2.imencode('.jpg', frame)
         # stream to template to browser
         yield (b'--frame\r\n'
@@ -136,11 +131,12 @@ def get_log_items(index):
 def setup_threads(cnfg):
     """ setup all threads needed for this app """
     ips = cnfg.get_ip_adresse_list()
-    from cameras import camera
+    from cameras import camera, frame
     cams = []
     for idx, ip in enumerate(ips):
+        frm = frame.Frame(None)
         url = cnfg.get_rtsp_url(idx)
-        cam = camera.Camera(idx,url) # instantiate a camera feed
+        cam = camera.Camera(idx,url,frm) # instantiate a camera feed
         cam.daemon = True # define feed as daemon thread
         cam.start() # start daemon camera thread
         cams.append(cam)
