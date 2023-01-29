@@ -16,9 +16,9 @@ class Camera(threading.Thread):
         threading.Thread.__init__(self)
         self.idx = idx # thread index
         self.rtsp_url = rtsp_url # url of the external camera or webcam index
-        self.frame = frm # class netcam.cameras.frame.Frame
+        self.frame = frm # static class: netcam-git.netcam.cameras.frame.Frame
         self.frame_count = 0 # frame count
-        self.skipped = 0 # skipped count
+        self.skipped = 0 # skipped frame count
         self.sync_event = threading.Event()
         self.sync_event.clear() # not set
         self.keep_running = True # maintain video streaming from this camera

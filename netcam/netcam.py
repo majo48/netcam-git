@@ -2,13 +2,17 @@
 
 from flask import Flask
 from flask import render_template
+from flask import make_response
 from flask import url_for
 from flask import Response
+from flask import request
 import cv2
 import imutils
 from cameras import config
 import logging
 import sys
+import random
+import string
 
 
 app = Flask(__name__)
@@ -17,15 +21,30 @@ app = Flask(__name__)
 @app.route("/home")
 def home():
     idx=0 # default, first camera
-    return render_template(
-        template_name_or_list='home.html',
-        navigation={
-            "icon": "hamburger",
-            "url": url_for("menu_main", _external=True) },
-        index={
-            "current": str(idx),
-            "max": str(len(thrds)) }
-    )
+    userid = manage_cookies(request.cookies.get('userid'))
+    rsp = make_response(
+        render_template(
+            template_name_or_list='home.html',
+            navigation={
+                "icon": "hamburger",
+                "url": url_for("menu_main", _external=True)},
+            index={
+                "current": str(idx),
+                "max": str(len(thrds))}
+    ))
+    rsp.set_cookie('userid', userid)
+    rsp.set_cookie('pageid', request.path)
+    return rsp
+
+def manage_cookies(userid):
+    """ manage cookies[userid] """
+    if userid:
+        return userid
+    else:
+        # new user, no userid defined yet
+        letters = string.ascii_uppercase + string.ascii_lowercase + string.digits
+        result_str = ''.join(random.choice(letters) for i in range(14))
+        return result_str
 
 @app.route("/video_feed/<idx>")
 def video_feed(idx):
@@ -46,40 +65,60 @@ def generate_frames(idx):
 
 @app.route("/menu/main")
 def menu_main():
-    return render_template(
-        template_name_or_list='menu.main.html',
-        navigation={
-            "icon": "cross",
-            "url": url_for("home", _external=True) }
-    )
+    userid = manage_cookies(request.cookies.get('userid'))
+    rsp = make_response(
+        render_template(
+            template_name_or_list='menu.main.html',
+            navigation={
+                "icon": "cross",
+                "url": url_for("home", _external=True)}
+        ))
+    rsp.set_cookie('userid', userid)
+    rsp.set_cookie('pageid', request.path)
+    return rsp
 
 @app.route("/tiles")
 def tiles():
-    return render_template(
-        template_name_or_list='tiles.html',
-        navigation={
-            "icon": "cross",
-            "url": url_for("home", _external=True) }
-    )
+    userid = manage_cookies(request.cookies.get('userid'))
+    rsp = make_response(
+        render_template(
+            template_name_or_list='tiles.html',
+            navigation={
+                "icon": "cross",
+                "url": url_for("home", _external=True)}
+        ))
+    rsp.set_cookie('userid', userid)
+    rsp.set_cookie('pageid', request.path)
+    return rsp
 
 @app.route("/menu/clips")
 def menu_clips():
-    return render_template(
-        template_name_or_list='menu.clips.html',
-        navigation={
-            "icon": "cross",
-            "url": url_for("home", _external=True) }
-    )
+    userid = manage_cookies(request.cookies.get('userid'))
+    rsp = make_response(
+        render_template(
+            template_name_or_list='menu.clips.html',
+            navigation={
+                "icon": "cross",
+                "url": url_for("home", _external=True)}
+        ))
+    rsp.set_cookie('userid', userid)
+    rsp.set_cookie('pageid', request.path)
+    return rsp
 
 @app.route("/clips/<period>")
 def clips(period):
-    return render_template(
-        template_name_or_list='clips.html',
-        period=period,
-        navigation={
-            "icon": "cross",
-            "url": url_for("home", _external=True) }
-    )
+    userid = manage_cookies(request.cookies.get('userid'))
+    rsp = make_response(
+        render_template(
+            template_name_or_list='clips.html',
+            period=period,
+            navigation={
+                "icon": "cross",
+                "url": url_for("home", _external=True)}
+        ))
+    rsp.set_cookie('userid', userid)
+    rsp.set_cookie('pageid', request.path)
+    return rsp
 
 @app.route("/clip/<clipdate>/<cliptime>")
 def clip(clipdate, cliptime):
@@ -89,33 +128,48 @@ def clip(clipdate, cliptime):
     :param cliptime: string, format: hh:mm:ss.mmm
     :return: template rendered with information
     """
-    return render_template(
-        template_name_or_list='clip.html',
-        navigation={
-            "icon": "cross",
-            "url": url_for("home", _external=True) }
-    )
+    userid = manage_cookies(request.cookies.get('userid'))
+    rsp = make_response(
+        render_template(
+            template_name_or_list='clip.html',
+            navigation={
+                "icon": "cross",
+                "url": url_for("home", _external=True)}
+        ))
+    rsp.set_cookie('userid', userid)
+    rsp.set_cookie('pageid', request.path)
+    return rsp
 
 @app.route("/states")
 def states():
-    return render_template(
-        template_name_or_list='states.html',
-        navigation={
-            "icon": "cross",
-            "url": url_for("home", _external=True) }
-    )
+    userid = manage_cookies(request.cookies.get('userid'))
+    rsp = make_response(
+        render_template(
+            template_name_or_list='states.html',
+            navigation={
+                "icon": "cross",
+                "url": url_for("home", _external=True)}
+        ))
+    rsp.set_cookie('userid', userid)
+    rsp.set_cookie('pageid', request.path)
+    return rsp
 
 @app.route("/logs")
 @app.route("/logs/<index>")
 def logs(index=''):
+    userid = manage_cookies(request.cookies.get('userid'))
     log_items = get_log_items(index)
-    return render_template(
-        template_name_or_list='logs.html',
-        navigation={
-            "icon": "cross",
-            "url": url_for("home", _external=True) },
-        logs=log_items
-    )
+    rsp = make_response(
+        render_template(
+            template_name_or_list='logs.html',
+            navigation={
+                "icon": "cross",
+                "url": url_for("home", _external=True)},
+            logs=log_items
+        ))
+    rsp.set_cookie('userid', userid)
+    rsp.set_cookie('pageid', request.path)
+    return rsp
 
 def get_log_items(index):
     """ get filtered logs """
@@ -174,14 +228,14 @@ def setup_logging():
 
 if __name__ == "__main__":
     """ initialize the netcam app """
-    # setup logging
+    # setup logging -----
     cnfg = setup_logging()
     logging.info(">>> Start Flask application '"+app.name+"'")
 
-    # setup all threads needed for the application
+    # setup all threads needed for the application -----
     thrds = setup_threads(cnfg)
 
-    # run Flask server
+    # run Flask server -----
     if cnfg.is_debug_mode():
         # [safe] run Flask webserver in development environment only, no external access possible (safe)
         # app.run(debug=True, use_debugger=False, use_reloader=False) # or comment + uncomment the last line of code
@@ -192,7 +246,7 @@ if __name__ == "__main__":
         # run in production mode
         app.run(debug=False, use_debugger=False, use_reloader=False)
 
-    # stop and kill threads
+    # stop and kill threads -----
     for thrd in thrds:
         thrd.terminate_thread()
         thrd.join()
