@@ -6,8 +6,8 @@ from flask import make_response
 from flask import url_for
 from flask import Response
 from flask import request
+from flask import session
 import cv2
-import imutils
 from cameras import config
 import logging
 import sys
@@ -198,8 +198,10 @@ def setup_threads(cnfg):
 
 def setup_logging():
     """ setup logging for development and production environments """
-    myfmt = '%(asctime)s | %(levelname)s | %(threadName)s | %(module)s | %(message)s'
+    # get confidential information
     cnfg = config.Config()
+    # setup logging formats (depends on environments)
+    myfmt = '%(asctime)s | %(levelname)s | %(threadName)s | %(module)s | %(message)s'
     if cnfg.is_debug_mode():
         # basic configuration for development environment
         logging.basicConfig(
@@ -231,6 +233,9 @@ if __name__ == "__main__":
     # setup logging -----
     cnfg = setup_logging()
     logging.info(">>> Start Flask application '"+app.name+"'")
+
+    # setup session variable
+    app.secret_key = cnfg.get_flask_secret()
 
     # setup all threads needed for the application -----
     thrds = setup_threads(cnfg)
