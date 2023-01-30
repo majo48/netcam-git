@@ -20,11 +20,12 @@ app = Flask(__name__)
 @app.route("/")
 @app.route("/home")
 def home():
-    idx=0 # default, first camera
-    userid = manage_cookies(request.cookies.get('userid'))
+    template='home.html'
+    idx=0 # [default] first camera
+    set_session_cookies(template,idx,streaming=True)
     rsp = make_response(
         render_template(
-            template_name_or_list='home.html',
+            template_name_or_list=template,
             navigation={
                 "icon": "hamburger",
                 "url": url_for("menu_main", _external=True)},
@@ -32,19 +33,21 @@ def home():
                 "current": str(idx),
                 "max": str(len(thrds))}
     ))
-    rsp.set_cookie('userid', userid)
-    rsp.set_cookie('pageid', request.path)
     return rsp
 
-def manage_cookies(userid):
-    """ manage cookies[userid] """
-    if userid:
-        return userid
+def set_session_cookies(template, idx=0, streaming=False):
+    """ read cookies from the session context """
+    if 'streaming' in session:
+        current = session['streaming']
     else:
-        # new user, no userid defined yet
-        letters = string.ascii_uppercase + string.ascii_lowercase + string.digits
-        result_str = ''.join(random.choice(letters) for i in range(14))
-        return result_str
+        current = None
+    if streaming:
+        # enables only one stream at a time
+        session['streaming'] = template + '.' + str(idx)
+    else:
+        # no streaming allowed
+        session['streaming'] = 'none'
+    pass
 
 @app.route("/video_feed/<idx>")
 def video_feed(idx):
@@ -65,59 +68,55 @@ def generate_frames(idx):
 
 @app.route("/menu/main")
 def menu_main():
-    userid = manage_cookies(request.cookies.get('userid'))
+    template = 'menu.main.html'
+    set_session_cookies(template)
     rsp = make_response(
         render_template(
-            template_name_or_list='menu.main.html',
+            template_name_or_list=template,
             navigation={
                 "icon": "cross",
                 "url": url_for("home", _external=True)}
         ))
-    rsp.set_cookie('userid', userid)
-    rsp.set_cookie('pageid', request.path)
     return rsp
 
 @app.route("/tiles")
 def tiles():
-    userid = manage_cookies(request.cookies.get('userid'))
+    template = 'tiles.html'
+    set_session_cookies(template)
     rsp = make_response(
         render_template(
-            template_name_or_list='tiles.html',
+            template_name_or_list=template,
             navigation={
                 "icon": "cross",
                 "url": url_for("home", _external=True)}
         ))
-    rsp.set_cookie('userid', userid)
-    rsp.set_cookie('pageid', request.path)
     return rsp
 
 @app.route("/menu/clips")
 def menu_clips():
-    userid = manage_cookies(request.cookies.get('userid'))
+    template = 'menu.clips.html'
+    set_session_cookies(template)
     rsp = make_response(
         render_template(
-            template_name_or_list='menu.clips.html',
+            template_name_or_list=template,
             navigation={
                 "icon": "cross",
                 "url": url_for("home", _external=True)}
         ))
-    rsp.set_cookie('userid', userid)
-    rsp.set_cookie('pageid', request.path)
     return rsp
 
 @app.route("/clips/<period>")
 def clips(period):
-    userid = manage_cookies(request.cookies.get('userid'))
+    template = 'clips.html'
+    set_session_cookies(template)
     rsp = make_response(
         render_template(
-            template_name_or_list='clips.html',
+            template_name_or_list=template,
             period=period,
             navigation={
                 "icon": "cross",
                 "url": url_for("home", _external=True)}
         ))
-    rsp.set_cookie('userid', userid)
-    rsp.set_cookie('pageid', request.path)
     return rsp
 
 @app.route("/clip/<clipdate>/<cliptime>")
@@ -128,47 +127,44 @@ def clip(clipdate, cliptime):
     :param cliptime: string, format: hh:mm:ss.mmm
     :return: template rendered with information
     """
-    userid = manage_cookies(request.cookies.get('userid'))
+    template = 'clip.html'
+    set_session_cookies(template)
     rsp = make_response(
         render_template(
-            template_name_or_list='clip.html',
+            template_name_or_list=template,
             navigation={
                 "icon": "cross",
                 "url": url_for("home", _external=True)}
         ))
-    rsp.set_cookie('userid', userid)
-    rsp.set_cookie('pageid', request.path)
     return rsp
 
 @app.route("/states")
 def states():
-    userid = manage_cookies(request.cookies.get('userid'))
+    template = 'states.html'
+    set_session_cookies(template)
     rsp = make_response(
         render_template(
-            template_name_or_list='states.html',
+            template_name_or_list=template,
             navigation={
                 "icon": "cross",
                 "url": url_for("home", _external=True)}
         ))
-    rsp.set_cookie('userid', userid)
-    rsp.set_cookie('pageid', request.path)
     return rsp
 
 @app.route("/logs")
 @app.route("/logs/<index>")
 def logs(index=''):
-    userid = manage_cookies(request.cookies.get('userid'))
+    template = 'logs.html'
+    set_session_cookies(template)
     log_items = get_log_items(index)
     rsp = make_response(
         render_template(
-            template_name_or_list='logs.html',
+            template_name_or_list=template,
             navigation={
                 "icon": "cross",
                 "url": url_for("home", _external=True)},
             logs=log_items
         ))
-    rsp.set_cookie('userid', userid)
-    rsp.set_cookie('pageid', request.path)
     return rsp
 
 def get_log_items(index):
