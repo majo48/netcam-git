@@ -7,6 +7,6 @@
             // todo: add heartbeat feedback here
         }
     </script>
-<!-- video_feed parameters: current index: {{index.current}}, max index: {{index.max}} -->
-<img src="/video_feed/{{index.current}}" width="100%" >
+<!-- video_feed parameters: context: current template and index -->
+<img src="/video_feed/{{context.template}}/{{context.index}}" width="100%" >
 {% endblock content %}

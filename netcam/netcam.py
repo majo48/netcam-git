@@ -5,14 +5,11 @@ from flask import render_template
 from flask import make_response
 from flask import url_for
 from flask import Response
-from flask import request
 from flask import session
 import cv2
 from cameras import config
 import logging
 import sys
-import random
-import string
 
 
 app = Flask(__name__)
@@ -29,9 +26,9 @@ def home():
             navigation={
                 "icon": "hamburger",
                 "url": url_for("menu_main", _external=True)},
-            index={
-                "current": str(idx),
-                "max": str(len(thrds))}
+            context={
+                "template": template,
+                "index": str(idx)}
     ))
     return rsp
 
@@ -49,22 +46,27 @@ def set_session_cookies(template, idx=0, streaming=False):
         session['streaming'] = 'none'
     pass
 
-@app.route("/video_feed/<idx>")
-def video_feed(idx):
+@app.route("/video_feed/<template>/<idx>")
+def video_feed(template, idx):
     return Response(
-        generate_frames(idx),
+        generate_frames(template, idx),
         mimetype='multipart/x-mixed-replace; boundary=frame')
 
-def generate_frames(idx):
+def generate_frames(template, idx):
     """ get synced frame from cameras[idx] (blocking) """
+    # mystream = template+'.'+str(idx)
+    # mysession = session['streaming'] # causes RuntimeError: Working outside of request context
     while True:
         # todo: add heartbeat test in order to avoid permanent threads
-        # convert frame to low resolution jpeg (smooth html video viewing)
+        # get frame converted to low resolution jpeg (smooth html video viewing)
         frame = thrds[int(idx)].get_frame_picture(width=960)
         retval, buffer = cv2.imencode('.jpg', frame)
         # stream to template to browser
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+        # if ('streaming' not in session) or (session['streaming'] != mystream):
+        #    break # close this thread, no longer needed
+    pass
 
 @app.route("/menu/main")
 def menu_main():
