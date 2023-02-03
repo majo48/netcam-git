@@ -3,6 +3,7 @@
 from flask import Flask
 from flask import render_template
 from flask import make_response
+from flask import stream_with_context
 from flask import url_for
 from flask import Response
 from flask import session
@@ -10,16 +11,40 @@ import cv2
 from cameras import config
 import logging
 import sys
+import uuid
+from threading import current_thread
+import streaming
 
+stream = streaming.Streaming()
 
 app = Flask(__name__)
 
+# -----------------------------------------------------------
+def set_streaming_context(streaming=False):
+    """
+    read cookies from the application config
+    call this at the beginning of the request
+    set streaming = True for all streaming routes
+    """
+    global stream
+    thread = current_thread().getName()
+    if 'userid' in session:
+        userid = session
+    else:
+        # new session, add synthetic user ID
+        userid = uuid.uuid4().hex # unique, 32 chars
+        session['userid'] = userid
+    success = stream.set_context(userid, streaming)
+    return userid, thread
+
+# -----------------------------------------------------------
 @app.route("/")
 @app.route("/home")
 def home():
+    """ top level webpage """
     template='home.html'
     idx=0 # [default] first camera
-    set_session_cookies(template,idx,streaming=True)
+    usrd, thrd = set_streaming_context(streaming=True)
     rsp = make_response(
         render_template(
             template_name_or_list=template,
@@ -32,46 +57,38 @@ def home():
     ))
     return rsp
 
-def set_session_cookies(template, idx=0, streaming=False):
-    """ read cookies from the session context """
-    if 'streaming' in session:
-        current = session['streaming']
-    else:
-        current = None
-    if streaming:
-        # enables only one stream at a time
-        session['streaming'] = template + '.' + str(idx)
-    else:
-        # no streaming allowed
-        session['streaming'] = 'none'
-    pass
-
 @app.route("/video_feed/<template>/<idx>")
 def video_feed(template, idx):
+    """ top level streaming page, referenced by home.html template """
+    userid = session['userid']
     return Response(
-        generate_frames(template, idx),
+        stream_with_context(generate_frames(userid, template, idx)),
         mimetype='multipart/x-mixed-replace; boundary=frame')
 
-def generate_frames(template, idx):
+def generate_frames(userid, template, idx):
     """ get synced frame from cameras[idx] (blocking) """
-    # mystream = template+'.'+str(idx)
-    # mysession = session['streaming'] # causes RuntimeError: Working outside of request context
-    while True:
-        # todo: add heartbeat test in order to avoid permanent threads
+    global stream
+    logging.debug('>>> Start streaming loop for user '+userid)
+    while stream.is_allowed(userid):
         # get frame converted to low resolution jpeg (smooth html video viewing)
         frame = thrds[int(idx)].get_frame_picture(width=960)
         retval, buffer = cv2.imencode('.jpg', frame)
         # stream to template to browser
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-        # if ('streaming' not in session) or (session['streaming'] != mystream):
-        #    break # close this thread, no longer needed
-    pass
+    # end of while loop
+    logging.debug('<<< Stop streaming loop for user ' + userid)
 
+@app.route("/heartbeat/<userid>")
+def heartbeat(userid):
+    """ check if user has dropped the browser connection to top level """
+    pass # todo define actions here
+
+# -----------------------------------------------------------
 @app.route("/menu/main")
 def menu_main():
     template = 'menu.main.html'
-    set_session_cookies(template)
+    usrd, thrd = set_streaming_context()
     rsp = make_response(
         render_template(
             template_name_or_list=template,
@@ -81,10 +98,11 @@ def menu_main():
         ))
     return rsp
 
+# -----------------------------------------------------------
 @app.route("/tiles")
 def tiles():
     template = 'tiles.html'
-    set_session_cookies(template)
+    usrd, thrd = set_streaming_context()
     rsp = make_response(
         render_template(
             template_name_or_list=template,
@@ -94,10 +112,11 @@ def tiles():
         ))
     return rsp
 
+# -----------------------------------------------------------
 @app.route("/menu/clips")
 def menu_clips():
     template = 'menu.clips.html'
-    set_session_cookies(template)
+    usrd, thrd = set_streaming_context()
     rsp = make_response(
         render_template(
             template_name_or_list=template,
@@ -107,10 +126,11 @@ def menu_clips():
         ))
     return rsp
 
+# -----------------------------------------------------------
 @app.route("/clips/<period>")
 def clips(period):
     template = 'clips.html'
-    set_session_cookies(template)
+    usrd, thrd = set_streaming_context()
     rsp = make_response(
         render_template(
             template_name_or_list=template,
@@ -121,6 +141,7 @@ def clips(period):
         ))
     return rsp
 
+# -----------------------------------------------------------
 @app.route("/clip/<clipdate>/<cliptime>")
 def clip(clipdate, cliptime):
     """
@@ -130,7 +151,7 @@ def clip(clipdate, cliptime):
     :return: template rendered with information
     """
     template = 'clip.html'
-    set_session_cookies(template)
+    usrd, thrd = set_streaming_context()
     rsp = make_response(
         render_template(
             template_name_or_list=template,
@@ -140,10 +161,11 @@ def clip(clipdate, cliptime):
         ))
     return rsp
 
+# -----------------------------------------------------------
 @app.route("/states")
 def states():
     template = 'states.html'
-    set_session_cookies(template)
+    usrd, thrd = set_streaming_context()
     rsp = make_response(
         render_template(
             template_name_or_list=template,
@@ -153,11 +175,12 @@ def states():
         ))
     return rsp
 
+# -----------------------------------------------------------
 @app.route("/logs")
 @app.route("/logs/<index>")
 def logs(index=''):
     template = 'logs.html'
-    set_session_cookies(template)
+    usrd, thrd = set_streaming_context()
     log_items = get_log_items(index)
     rsp = make_response(
         render_template(
@@ -180,6 +203,7 @@ def get_log_items(index):
         log_items.append(item)
     return log_items
 
+# ===========================================================
 def setup_threads(cnfg):
     """ setup all threads needed for this app """
     ips = cnfg.get_ip_adresse_list()
