@@ -27,11 +27,11 @@
 </style>
  <div class="navbar">
   <a href="{{url_for('logs',index='all')}}">ALL</a>
-  <a href="{{url_for('logs',index='info')}}">INFO+</a>
-  <a href="{{url_for('logs',index='debug')}}">DEBUG+</a>
-  <a href="{{url_for('logs',index='warning')}}">WARNING+</a>
-  <a href="{{url_for('logs',index='error')}}">ERROR+</a>
-  <a href="{{url_for('logs',index='critical')}}">CRITICAL+</a>
+  <a href="{{url_for('logs',index='debug')}}">DEBUG</a>
+  <a href="{{url_for('logs',index='info')}}">INFO</a>
+  <a href="{{url_for('logs',index='warning')}}">WARNING</a>
+  <a href="{{url_for('logs',index='error')}}">ERROR</a>
+  <a href="{{url_for('logs',index='critical')}}">CRITICAL</a>
 </div>
 <div style="padding: 16px; margin-top: 30px;">
 {% for log in logs %}

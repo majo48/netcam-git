@@ -208,12 +208,19 @@ def logs(index=''):
 def get_log_items(index):
     """ get filtered logs """
     log_items = []
+    fltr = index.upper()
     fp = open(cnfg.get_log_filename())
     while True:
         item = fp.readline()
         if len(item) == 0:
             break
-        log_items.append(item)
+        if (index != '') and (index != 'all'):
+            if item.find(fltr) != -1:
+                log_items.append(item) # filtered item
+        else:
+            log_items.append(item) # unfiltered item
+    if len(log_items) == 0:
+        log_items.append('No log items available.')
     return log_items
 
 # ===========================================================
