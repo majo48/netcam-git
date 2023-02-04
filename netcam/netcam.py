@@ -15,6 +15,7 @@ import uuid
 from threading import current_thread
 import streaming
 
+# global var
 stream = streaming.Streaming()
 
 app = Flask(__name__)
@@ -22,19 +23,21 @@ app = Flask(__name__)
 # -----------------------------------------------------------
 def set_streaming_context(streaming=False):
     """
-    read cookies from the application config
+    read userid cooky from the Flask session
     call this at the beginning of the request
-    set streaming = True for all streaming routes
+    set argument 'streaming' = True for all streaming routes
     """
     global stream
-    thread = current_thread().getName()
+    thread = current_thread().getName() # always use current thread
     if 'userid' in session:
-        userid = session
+        # continue session
+        userid = session['userid']
     else:
         # new session, add synthetic user ID
         userid = uuid.uuid4().hex # unique, 32 chars
         session['userid'] = userid
-    success = stream.set_context(userid, streaming)
+    # save context to global 'stream' var
+    success = stream.set_context(userid, thread, streaming)
     return userid, thread
 
 # -----------------------------------------------------------
@@ -42,9 +45,10 @@ def set_streaming_context(streaming=False):
 @app.route("/home")
 def home():
     """ top level webpage """
+    logging.debug('Request to route /home ('+current_thread().getName()+')')
     template='home.html'
     idx=0 # [default] first camera
-    usrd, thrd = set_streaming_context(streaming=True)
+    # [debug] usrd, thrd = set_streaming_context(streaming=True)
     rsp = make_response(
         render_template(
             template_name_or_list=template,
@@ -60,7 +64,8 @@ def home():
 @app.route("/video_feed/<template>/<idx>")
 def video_feed(template, idx):
     """ top level streaming page, referenced by home.html template """
-    userid = session['userid']
+    logging.debug('Request to route /video_feed ('+current_thread().getName()+')')
+    userid, thrd = set_streaming_context(streaming=True)
     return Response(
         stream_with_context(generate_frames(userid, template, idx)),
         mimetype='multipart/x-mixed-replace; boundary=frame')
@@ -68,8 +73,9 @@ def video_feed(template, idx):
 def generate_frames(userid, template, idx):
     """ get synced frame from cameras[idx] (blocking) """
     global stream
-    logging.debug('>>> Start streaming loop for user '+userid)
-    while stream.is_allowed(userid):
+    thread = current_thread().getName()
+    logging.debug('>>> Start streaming loop for user '+userid+' and '+thread)
+    while stream.is_allowed(userid, thread):
         # get frame converted to low resolution jpeg (smooth html video viewing)
         frame = thrds[int(idx)].get_frame_picture(width=960)
         retval, buffer = cv2.imencode('.jpg', frame)
@@ -77,16 +83,19 @@ def generate_frames(userid, template, idx):
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
     # end of while loop
-    logging.debug('<<< Stop streaming loop for user ' + userid)
+    logging.debug('<<< Stop streaming loop for user ' + userid+' and '+thread)
 
 @app.route("/heartbeat/<userid>")
 def heartbeat(userid):
     """ check if user has dropped the browser connection to top level """
+    logging.debug('Request to route /heartbeat ('+current_thread().getName()+')')
     pass # todo define actions here
 
 # -----------------------------------------------------------
 @app.route("/menu/main")
 def menu_main():
+    """ main menu for all pages excluding /home """
+    logging.debug('Request to route /menu/main ('+current_thread().getName()+')')
     template = 'menu.main.html'
     usrd, thrd = set_streaming_context()
     rsp = make_response(
@@ -164,6 +173,8 @@ def clip(clipdate, cliptime):
 # -----------------------------------------------------------
 @app.route("/states")
 def states():
+    """ display states page """
+    logging.debug('Request to route /states ('+current_thread().getName()+')')
     template = 'states.html'
     usrd, thrd = set_streaming_context()
     rsp = make_response(
@@ -179,6 +190,8 @@ def states():
 @app.route("/logs")
 @app.route("/logs/<index>")
 def logs(index=''):
+    """ display logs page """
+    logging.debug('Request to route /logs ('+current_thread().getName()+')')
     template = 'logs.html'
     usrd, thrd = set_streaming_context()
     log_items = get_log_items(index)

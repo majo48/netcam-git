@@ -12,34 +12,38 @@ class Streaming:
         self._streams = []
         self._mutex = threading.Semaphore(1)
 
-    def _set_stream(self, userid):
+    def _set_stream(self, usrthrd):
         """ add userid to list """
-        if userid not in self._streams:
-            self._streams.append(userid)
+        if usrthrd not in self._streams:
+            self._streams.append(usrthrd)
             return True # success
         return False # failed
 
-    def _get_stream(self, userid):
-        """ True if userid in list, else not """
-        return userid in self._streams
+    def _del_stream(self, usrthrd):
+        """ remove all items with userid from list """
+        userid = usrthrd[0]
+        success = False
+        for item in self._streams:
+            if item[0] == userid:
+                self._streams.remove(item)
+                success = True
+        return success
 
-    def _del_stream(self, userid):
-        """ remove userid from list """
-        if userid in self._streams:
-            self._streams.remove(userid)
-            return True # success
-        return False # failed
-
-    def set_context(self, userid, streaming=False):
+    def set_context(self, userid, thread, streaming=False):
         """ set the streaming context for each user """
         with self._mutex:
+            usrthrd = ( userid, thread )
             if streaming:
-                success = self._set_stream(userid)
+                success = self._set_stream(usrthrd)
             else:
-                success = self._del_stream(userid)
+                success = self._del_stream(usrthrd)
             return success
 
-    def is_allowed(self, userid):
-        """ check if streaming is allowed for the user """
+    def is_allowed(self, userid, thread):
+        """ check if streaming is allowed for the user and thread """
         with self._mutex:
-            return self._get_stream(userid)
+            usrthrd = ( userid, thread )
+            for item in self._streams:
+                if item == usrthrd:
+                    return True # success
+            return False # failed
