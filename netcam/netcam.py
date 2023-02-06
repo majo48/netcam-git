@@ -33,32 +33,28 @@ def home():
                 "icon": "hamburger",
                 "url": url_for("menu_main", _external=True)},
             context={
-                "template": template,
                 "index": str(idx)}
     ))
     return rsp
 
-@app.route("/video_feed/<template>/<idx>")
-def video_feed(template, idx):
+@app.route("/video_feed/<idx>")
+def video_feed(idx):
     """ top level streaming page, referenced by home.html template """
     userid = session['userid']
     return Response(
-        stream_with_context(generate_frames(userid, template, idx)),
+        stream_with_context(generate_frames(userid, idx)),
         mimetype='multipart/x-mixed-replace; boundary=frame')
 
-def generate_frames(userid, template, idx):
+def generate_frames(userid, idx):
     """ get synced frame from cameras[idx] (blocking) """
-    thread = current_thread().getName()
-    logging.debug('>>> Start streaming loop for user '+userid+' and '+thread)
     while True:
         # get frame converted to low resolution jpeg (smooth html video viewing)
         frame = thrds[int(idx)].get_frame_picture(width=960)
         retval, buffer = cv2.imencode('.jpg', frame)
-        # stream to template to browser
+        # stream to template and user's browser
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-    # end of while loop
-    logging.debug('<<< Stop streaming loop for user ' + userid+' and '+thread)
+    pass # managed by Flask
 
 @app.route("/heartbeat/<userid>")
 def heartbeat(userid):
