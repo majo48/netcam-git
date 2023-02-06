@@ -1,4 +1,5 @@
 # Copyright (c) 2022 Martin Jonasse, Zug, Switzerland
+import threading
 
 from flask import Flask
 from flask import render_template
@@ -15,9 +16,6 @@ import uuid
 from threading import current_thread
 import streaming
 
-# global var
-stream = streaming.Streaming()
-
 app = Flask(__name__)
 
 # -----------------------------------------------------------
@@ -27,7 +25,6 @@ def set_streaming_context(streaming=False):
     call this at the beginning of the request
     set argument 'streaming' = True for all streaming routes
     """
-    global stream
     thread = current_thread().getName() # always use current thread
     if 'userid' in session:
         # continue session
@@ -177,14 +174,43 @@ def states():
     logging.debug('Request to route /states ('+current_thread().getName()+')')
     template = 'states.html'
     usrd, thrd = set_streaming_context()
+    state_items = get_state_items()
     rsp = make_response(
         render_template(
             template_name_or_list=template,
             navigation={
                 "icon": "cross",
-                "url": url_for("home", _external=True)}
+                "url": url_for("home", _external=True)},
+            states = state_items
         ))
     return rsp
+
+def get_state_items():
+    """ simple display of some state items """
+    state_items = []
+    state_items.append('THREADS')
+    state_items.append('Current thread: '+current_thread().getName())
+    threads = threading.enumerate()
+    import json
+    for thread in threads:
+        gtp = get_thread_position(thread)
+        state_items.append(gtp)
+    return state_items
+
+def get_thread_position(thread):
+    """ get active threads, current filename, code section with line number """
+    frame = sys._current_frames().get(thread.ident, None)
+    if frame:
+        dict = {
+            "threadname": thread.name,
+            "daemon": str(thread.daemon),
+            "filename": frame.f_code.co_filename,
+            "codesection": frame.f_code.co_name,
+            "codeline": str(frame.f_code.co_firstlineno) }
+        strng = ''
+        for key, val in dict.items():
+            strng += key + ": " + val + ", "
+        return strng[:-2]
 
 # -----------------------------------------------------------
 @app.route("/logs")
@@ -282,13 +308,16 @@ if __name__ == "__main__":
     # setup all threads needed for the application -----
     thrds = setup_threads(cnfg)
 
+    # synchronize website with video streaming
+    stream = streaming.Streaming()
+
     # run Flask server -----
     if cnfg.is_debug_mode():
         # [safe] run Flask webserver in development environment only, no external access possible (safe)
         # app.run(debug=True, use_debugger=False, use_reloader=False) # or comment + uncomment the last line of code
 
         # [unsafe] run on all IP addresses, external access allowed
-        app.run(debug=True, use_debugger=False, use_reloader=False, host='0.0.0.0', port=5000)
+        app.run(debug=False, use_debugger=False, use_reloader=False, host='0.0.0.0', port=5000)
     else:
         # run in production mode
         app.run(debug=False, use_debugger=False, use_reloader=False)
