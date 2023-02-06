@@ -14,38 +14,18 @@ import logging
 import sys
 import uuid
 from threading import current_thread
-import streaming
 
 app = Flask(__name__)
-
-# -----------------------------------------------------------
-def set_streaming_context(streaming=False):
-    """
-    read userid cooky from the Flask session
-    call this at the beginning of the request
-    set argument 'streaming' = True for all streaming routes
-    """
-    thread = current_thread().getName() # always use current thread
-    if 'userid' in session:
-        # continue session
-        userid = session['userid']
-    else:
-        # new session, add synthetic user ID
-        userid = uuid.uuid4().hex # unique, 32 chars
-        session['userid'] = userid
-    # save context to global 'stream' var
-    success = stream.set_context(userid, thread, streaming)
-    return userid, thread
 
 # -----------------------------------------------------------
 @app.route("/")
 @app.route("/home")
 def home():
     """ top level webpage """
-    logging.debug('Request to route /home ('+current_thread().getName()+')')
     template='home.html'
     idx=0 # [default] first camera
-    # [debug] usrd, thrd = set_streaming_context(streaming=True)
+    if 'userid' not in session:
+        session['userid'] = uuid.uuid4().hex # unique, 32 chars
     rsp = make_response(
         render_template(
             template_name_or_list=template,
@@ -61,18 +41,16 @@ def home():
 @app.route("/video_feed/<template>/<idx>")
 def video_feed(template, idx):
     """ top level streaming page, referenced by home.html template """
-    logging.debug('Request to route /video_feed ('+current_thread().getName()+')')
-    userid, thrd = set_streaming_context(streaming=True)
+    userid = session['userid']
     return Response(
         stream_with_context(generate_frames(userid, template, idx)),
         mimetype='multipart/x-mixed-replace; boundary=frame')
 
 def generate_frames(userid, template, idx):
     """ get synced frame from cameras[idx] (blocking) """
-    global stream
     thread = current_thread().getName()
     logging.debug('>>> Start streaming loop for user '+userid+' and '+thread)
-    while stream.is_allowed(userid, thread):
+    while True:
         # get frame converted to low resolution jpeg (smooth html video viewing)
         frame = thrds[int(idx)].get_frame_picture(width=960)
         retval, buffer = cv2.imencode('.jpg', frame)
@@ -92,9 +70,7 @@ def heartbeat(userid):
 @app.route("/menu/main")
 def menu_main():
     """ main menu for all pages excluding /home """
-    logging.debug('Request to route /menu/main ('+current_thread().getName()+')')
     template = 'menu.main.html'
-    usrd, thrd = set_streaming_context()
     rsp = make_response(
         render_template(
             template_name_or_list=template,
@@ -108,7 +84,6 @@ def menu_main():
 @app.route("/tiles")
 def tiles():
     template = 'tiles.html'
-    usrd, thrd = set_streaming_context()
     rsp = make_response(
         render_template(
             template_name_or_list=template,
@@ -122,7 +97,6 @@ def tiles():
 @app.route("/menu/clips")
 def menu_clips():
     template = 'menu.clips.html'
-    usrd, thrd = set_streaming_context()
     rsp = make_response(
         render_template(
             template_name_or_list=template,
@@ -136,7 +110,6 @@ def menu_clips():
 @app.route("/clips/<period>")
 def clips(period):
     template = 'clips.html'
-    usrd, thrd = set_streaming_context()
     rsp = make_response(
         render_template(
             template_name_or_list=template,
@@ -157,7 +130,6 @@ def clip(clipdate, cliptime):
     :return: template rendered with information
     """
     template = 'clip.html'
-    usrd, thrd = set_streaming_context()
     rsp = make_response(
         render_template(
             template_name_or_list=template,
@@ -173,7 +145,6 @@ def states():
     """ display states page """
     logging.debug('Request to route /states ('+current_thread().getName()+')')
     template = 'states.html'
-    usrd, thrd = set_streaming_context()
     state_items = get_state_items()
     rsp = make_response(
         render_template(
@@ -191,14 +162,16 @@ def get_state_items():
     state_items.append('THREADS')
     state_items.append('Current thread: '+current_thread().getName())
     threads = threading.enumerate()
-    import json
     for thread in threads:
         gtp = get_thread_position(thread)
         state_items.append(gtp)
     return state_items
 
 def get_thread_position(thread):
-    """ get active threads, current filename, code section with line number """
+    """
+    get active threads, current filename, code section with line number
+    note: sys._current_frames() is a non-public class methode (see internet)
+    """
     frame = sys._current_frames().get(thread.ident, None)
     if frame:
         dict = {
@@ -219,7 +192,6 @@ def logs(index=''):
     """ display logs page """
     logging.debug('Request to route /logs ('+current_thread().getName()+')')
     template = 'logs.html'
-    usrd, thrd = set_streaming_context()
     log_items = get_log_items(index)
     rsp = make_response(
         render_template(
@@ -307,9 +279,6 @@ if __name__ == "__main__":
 
     # setup all threads needed for the application -----
     thrds = setup_threads(cnfg)
-
-    # synchronize website with video streaming
-    stream = streaming.Streaming()
 
     # run Flask server -----
     if cnfg.is_debug_mode():
