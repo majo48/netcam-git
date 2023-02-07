@@ -56,12 +56,6 @@ def generate_frames(userid, idx):
                b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
     pass # managed by Flask
 
-@app.route("/heartbeat/<userid>")
-def heartbeat(userid):
-    """ check if user has dropped the browser connection to top level """
-    logging.debug('Request to route /heartbeat ('+current_thread().getName()+')')
-    pass # todo define actions here
-
 # -----------------------------------------------------------
 @app.route("/menu/main")
 def menu_main():
@@ -170,12 +164,8 @@ def get_thread_position(thread):
     """
     frame = sys._current_frames().get(thread.ident, None)
     if frame:
-        dict = {
-            "threadname": thread.name,
-            "daemon": str(thread.daemon),
-            "filename": frame.f_code.co_filename,
-            "codesection": frame.f_code.co_name,
-            "codeline": str(frame.f_code.co_firstlineno) }
+        dict = { "threadname": thread.name, "daemon": str(thread.daemon), "filename": frame.f_code.co_filename,
+                 "codesection": frame.f_code.co_name, "codeline": str(frame.f_code.co_firstlineno) }
         strng = ''
         for key, val in dict.items():
             strng += key + ": " + val + ", "

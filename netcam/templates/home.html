@@ -1,12 +1,6 @@
 {# Copyright (c) 2022 Martin Jonasse, Zug, Switzerland #}
 {% extends "base.html" %}
 {% block content %}
-    <script type="text/javascript">
-        function heartbeat(target, id){
-            console.debug("URL: "+target+", ID: "+id);
-            // todo: add heartbeat feedback here
-        }
-    </script>
 <!-- video_feed parameters: context: current index -->
 <img src="/video_feed/{{context.index}}" width="100%" >
 {% endblock content %}
