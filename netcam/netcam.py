@@ -133,7 +133,6 @@ def clip(clipdate, cliptime):
 @app.route("/states")
 def states():
     """ display states page """
-    logging.debug('Request to route /states ('+current_thread().getName()+')')
     template = 'states.html'
     state_items = get_state_items()
     rsp = make_response(
@@ -149,12 +148,21 @@ def states():
 def get_state_items():
     """ simple display of some state items """
     state_items = []
+    # get thread info -----
     state_items.append('THREADS')
     state_items.append('Current thread: '+current_thread().getName())
     threads = threading.enumerate()
     for thread in threads:
         gtp = get_thread_position(thread)
         state_items.append(gtp)
+    # get camera info -----
+    state_items.append(('CAMERAS'))
+    idx = 1
+    for thrd in thrds:
+        fps = thrd.get_fps()
+        state_items.append('Camera: '+str(idx)+', Frames per second: '+str(fps))
+        idx += 1
+    # exit -----
     return state_items
 
 def get_thread_position(thread):
@@ -176,7 +184,6 @@ def get_thread_position(thread):
 @app.route("/logs/<index>")
 def logs(index=''):
     """ display logs page """
-    logging.debug('Request to route /logs ('+current_thread().getName()+')')
     template = 'logs.html'
     log_items = get_log_items(index)
     rsp = make_response(
