@@ -2,20 +2,26 @@
 
 import cv2
 import os
+import sys
 import threading
 import logging
 import time
 
+# constants
+MAX_SKIPPED = 10 # skipped frames
+WAIT_SHORT = 1 # [10] seconds
+WAIT_LONG = 30 # [30] seconds
 
 class Camera(threading.Thread):
     """ class for one physical video cameras """
 
-    def __init__(self, idx, rtsp_url, frm):
+    def __init__(self, idx, ipaddr, rtsp_url, frm):
         """
         initialize connection to one physical video camera
         """
         threading.Thread.__init__(self)
         self.idx = idx # thread index
+        self.ipaddr = ipaddr # ip address of the IP camera
         self.rtsp_url = rtsp_url # url of the external camera or webcam index
         self.frame = frm # static class: netcam-git.netcam.cameras.frame.Frame
         self.skipped = 0 # skipped frame count
@@ -23,43 +29,66 @@ class Camera(threading.Thread):
         self.sync_event.clear() # not set
         self.keep_running = True # maintain video streaming from this camera
 
+    def _ping_camera(self, ipaddr):
+        """
+        Send a ping to the network camera
+        :return: True is active, False is not connected
+        """
+        response = os.system("ping -c 1 " + ipaddr + " > /dev/null 2>&1")
+        # and then check the response...
+        return response == 0
+
+    def _sleep(self, secs):
+        """ sleep for a number of seconds """
+        cnt = secs
+        while self.keep_running and cnt!=0:
+            time.sleep(1)
+            cnt -= 1
+        pass
+
     def run(self):
         """
         open/connect video stream from one physical video camera
         """
         while self.keep_running:
-            try:
-                thread = threading.currentThread()
+            if not self._ping_camera(self.ipaddr):
+                # cannot connect to camera, ping failed
+                self.set_connection_problem()
+                time.sleep(1)
+            else:
+                logging.info(">>> Started video stream in " + threading.currentThread().getName())
                 stream = cv2.VideoCapture(self.rtsp_url)
-                logging.info(">>> Started video stream in thread '" + thread.name)
-                # loop through all frames provided by the camera stream
+                self.skipped = 0 # reset skip counter
                 while self.keep_running:
-                    # get one frame from camera
-                    success, frm = stream.read()
-                    # check frame
-                    if (frm is None) or (success == False):
-                        self.skipped += 1
-                        if self.skipped > 10:
-                            raise Exception('Connection problem(s), restart video stream after a delay.')
-                        else:
-                            continue # skip the frame
-                    self.skipped = 0
-                    # pass frame to a thread safe container and start consumer threads
-                    self.frame.set_frame(frm)
-                    self.sync_event.set() # consumer threads: '1' motion detector, '0, 1, many' web clients
+                    try:
+                        success, frm = stream.read() # read one frame
+                    except cv2.error:
+                        logging.warning('<<< Connection problem (cv2).')
+                        break
 
-                logging.info("<<< Stopped video stream in thread '" + thread.name)
+                    if (success == False) or (frm is None):
+                        self.skipped += 1
+                        if self.has_connection_problem():
+                            logging.warning('<<< Connection problem(too many empty frames).')
+                            break
+                    else:
+                        self.skipped = 0 # reset skip counter
+                        self.frame.set_frame(frm) # pass frame to a thread safe container
+                        self.sync_event.set() # consumer threads: '1' motion detector, '0, 1, many' web clients
+
                 cv2.destroyAllWindows()
                 stream.release()
-            except BaseException as err:
-                logging.error(str(err))
-                time.sleep(30)  # delay, before trying again
-            finally:
-                pass
+                logging.info("<<< Stopped video stream in " + threading.currentThread().getName())
+                if self.keep_running:
+                    self._sleep(WAIT_LONG)  # delay, before trying again
 
     def get_frame_count(self):
         """ get the frame count """
         return self.frame.get_frame_count()
+
+    def get_skipped_count(self):
+        """ get the number of frames skipped """
+        return self.skipped
 
     def get_fps(self):
         """ get approx. frames per second """
@@ -84,6 +113,15 @@ class Camera(threading.Thread):
         self.sync_event.wait()
         # restarted the consumer task
         return self.frame.get_picture(width)
+
+    def has_connection_problem(self):
+        """ has a connection problem been detected? """
+        return self.skipped >= MAX_SKIPPED
+
+    def set_connection_problem(self):
+        """ set the var(s) for connection problem(s) """
+        self.skipped = MAX_SKIPPED
+        pass
 
     def terminate_thread(self):
         """ stop running this thread, called when main thread terminates """

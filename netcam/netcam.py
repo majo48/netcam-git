@@ -26,6 +26,7 @@ def home():
     idx=0 # [default] first camera
     if 'userid' not in session:
         session['userid'] = uuid.uuid4().hex # unique, 32 chars
+    connprob = thrds[idx].has_connection_problem()
     rsp = make_response(
         render_template(
             template_name_or_list=template,
@@ -33,7 +34,8 @@ def home():
                 "icon": "hamburger",
                 "url": url_for("menu_main", _external=True)},
             context={
-                "index": str(idx)}
+                "index": str(idx),
+                "connection_problem": connprob}
     ))
     return rsp
 
@@ -160,7 +162,11 @@ def get_state_items():
     idx = 1
     for thrd in thrds:
         fps = thrd.get_fps()
-        state_items.append('Camera: '+str(idx)+', Frames per second: '+str(fps))
+        frames = thrd.get_frame_count()
+        skipped = thrd.get_skipped_count()
+        state_items.append(
+            'Camera: '+str(idx)+', frames per second: '+str(fps)+', frames: '+str(frames)+', skipped: '+str(skipped)
+        )
         idx += 1
     # exit -----
     return state_items
@@ -173,7 +179,7 @@ def get_thread_position(thread):
     frame = sys._current_frames().get(thread.ident, None)
     if frame:
         dict = { "threadname": thread.name, "daemon": str(thread.daemon), "filename": frame.f_code.co_filename,
-                 "codesection": frame.f_code.co_name, "codeline": str(frame.f_code.co_firstlineno) }
+                 "codesection": frame.f_code.co_name, "codeline": str(frame.f_lineno) }
         strng = ''
         for key, val in dict.items():
             strng += key + ": " + val + ", "
@@ -223,7 +229,7 @@ def setup_threads(cnfg):
     for idx, ip in enumerate(ips):
         frm = frame.Frame(None)
         url = cnfg.get_rtsp_url(idx)
-        cam = camera.Camera(idx,url,frm) # instantiate a camera feed
+        cam = camera.Camera(idx,ip,url,frm) # instantiate a camera feed
         cam.daemon = True # define feed as daemon thread
         cam.start() # start daemon camera thread
         cams.append(cam)

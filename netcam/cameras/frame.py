@@ -17,12 +17,25 @@ class Frame:
         self.semaf = threading.Semaphore(value=1)
         self.frame_count = 0
         self.init_time = time.time()
+        self.fps = 0 # frames per second
+        pass
+
+    def _calc_fps(self):
+        """ calculate average value of frames per second, every 100 frames """
+        now = time.time()
+        fps = 100 / (now - self.init_time)
+        if self.fps == 0: self.fps = fps # first calculation
+        self.fps = (fps + self.fps) / 2  # average value
+        self.init_time = now
+        pass
 
     def set_frame(self, frm):
         """ write (protected) a new frame """
         with self.semaf:
             self.frame = frm
             self.frame_count += 1
+            if (self.frame_count % 100) == 0:
+                self._calc_fps()
         pass
 
     def get_frame_count(self):
@@ -30,10 +43,8 @@ class Frame:
         return self.frame_count
 
     def get_fps(self):
-        """ get (an approximate) frames per second """
-        secs = time.time() - self.init_time
-        fps = self.frame_count / secs
-        return round(fps, 0)
+        """ get (average) frames per second """
+        return round(self.fps, 1)
 
     def get_clone(self):
         """ get a clone (protected) of the current frame """

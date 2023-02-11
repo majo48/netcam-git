@@ -1,6 +1,18 @@
 {# Copyright (c) 2022 Martin Jonasse, Zug, Switzerland #}
 {% extends "base.html" %}
 {% block content %}
-<!-- video_feed parameters: context: current index -->
+<!-- video_feed parameters: context: current index, connection_problem -->
+{% if context.connection_problem %}
+    <img src="/static/disconnected-icon.png"
+         style="
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 500px;
+            height: 500px;
+            margin-top: -250px; /* Half the height */
+            margin-left: -250px; /* Half the width */">
+{% else %}
 <img src="/video_feed/{{context.index}}" width="100%" >
+{% endif %}
 {% endblock content %}
