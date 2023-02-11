@@ -1,7 +1,10 @@
 {# Copyright (c) 2022 Martin Jonasse, Zug, Switzerland #}
 {% extends "base.html" %}
 {% block content %}
-<!-- video_feed parameters: context: current index, connection_problem -->
+<!-- video_feed parameters: context: current index, connection_problem
+     REMINDER: static if - then - else condition,
+     ========  does not change dynamically, use F5 (refresh button)
+-->
 {% if context.connection_problem %}
     <img src="/static/disconnected-icon.png"
          style="
@@ -13,6 +16,6 @@
             margin-top: -250px; /* Half the height */
             margin-left: -250px; /* Half the width */">
 {% else %}
-<img src="/video_feed/{{context.index}}" width="100%" >
+    <img src="/video_feed/{{context.index}}" width="100%" >
 {% endif %}
 {% endblock content %}
