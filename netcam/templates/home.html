@@ -5,6 +5,12 @@
      REMINDER: static if - then - else condition,
      ========  does not change dynamically, use F5 (refresh button)
 -->
+<img src="/static/left-angle.png"
+     class="left-angle"
+     onClick="navigateTo('/home?camera={{context.index}}&next=left')" />
+<img src="/static/right-angle.png"
+     class="right-angle"
+     onClick="navigateTo('/home?camera={{context.index}}&next=right')" />
 {% if context.connection_problem %}
     <img src="/static/disconnected-icon.png"
          style="

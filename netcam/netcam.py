@@ -8,6 +8,7 @@ from flask import stream_with_context
 from flask import url_for
 from flask import Response
 from flask import session
+from flask import request
 import cv2
 from cameras import config
 import logging
@@ -22,11 +23,11 @@ app = Flask(__name__)
 @app.route("/home")
 def home():
     """ top level webpage """
-    template='home.html'
-    idx=0 # [default] first camera
+    idx = get_camera_index()
     if 'userid' not in session:
         session['userid'] = uuid.uuid4().hex # unique, 32 chars
-    connprob = thrds[idx].has_connection_problem()
+    connection_problem = thrds[idx].has_connection_problem()
+    template='home.html'
     rsp = make_response(
         render_template(
             template_name_or_list=template,
@@ -35,10 +36,32 @@ def home():
                 "url": url_for("menu_main", _external=True)},
             context={
                 "index": str(idx),
-                "connection_problem": connprob}
+                "connection_problem": connection_problem}
     ))
     return rsp
 
+def get_camera_index():
+    """
+    get the camera index fom the request
+    :return int
+    """
+    args = request.args
+    if 'camera' in args:
+        idx = int(args['camera'])
+    else:
+        idx=0 # [default] first camera
+    if 'next' in args:
+        next = args['next']
+        if next in ["left", "right"]:
+            if next == 'left':
+                ndx = idx-1
+            else:
+                ndx = idx+1
+            if 0 <= ndx < len(thrds):
+                idx = ndx
+    return idx
+
+# -----------------------------------------------------------
 @app.route("/video_feed/<idx>")
 def video_feed(idx):
     """ top level streaming page, referenced by home.html template """
@@ -221,6 +244,7 @@ def get_log_items(index):
     return log_items
 
 # ===========================================================
+
 def setup_threads(cnfg):
     """ setup all threads needed for this app """
     ips = cnfg.get_ip_adresse_list()
