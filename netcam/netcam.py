@@ -15,6 +15,7 @@ import logging
 import sys
 import uuid
 from threading import current_thread
+import math
 
 app = Flask(__name__)
 
@@ -72,7 +73,9 @@ def video_feed(idx, concurrent):
 
 def generate_frames(userid, idx, concurrent):
     """ get synced frame from cameras[idx] (blocking) """
-    frame_width=int(960/concurrent)
+    frame_width=960
+    if concurrent >1:
+        frame_width=int(960/math.sqrt(concurrent))
     while True:
         # get frame converted to low resolution jpeg (smooth html video viewing)
         frame = thrds[int(idx)].get_frame_picture(width=frame_width) # max 960px
