@@ -1,5 +1,20 @@
 {# Copyright (c) 2022 Martin Jonasse, Zug, Switzerland #}
 {% extends "base.html" %}
 {% block content %}
-<p>Tiles page, work in progress.</p>
+<style>
+    /* this works best for 1x iPad and 2x camera */
+    .tiledWrapper {
+        height: 100%;
+        width: auto;
+    }
+    .tiledWrapper img {
+        width: 100%;
+        height: auto;
+    }
+</style>
+<div class="tiledWrapper">
+{% for index in indices %}
+    <img src="/video_feed/{{index}}/{{concurrent}}" />
+{% endfor %}
+</div>
 {% endblock content %}

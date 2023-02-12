@@ -62,19 +62,20 @@ def get_camera_index():
     return idx
 
 # -----------------------------------------------------------
-@app.route("/video_feed/<idx>")
-def video_feed(idx):
+@app.route("/video_feed/<idx>/<concurrent>")
+def video_feed(idx, concurrent):
     """ top level streaming page, referenced by home.html template """
     userid = session['userid']
     return Response(
-        stream_with_context(generate_frames(userid, idx)),
+        stream_with_context(generate_frames(userid, idx, int(concurrent))),
         mimetype='multipart/x-mixed-replace; boundary=frame')
 
-def generate_frames(userid, idx):
+def generate_frames(userid, idx, concurrent):
     """ get synced frame from cameras[idx] (blocking) """
+    frame_width=int(960/concurrent)
     while True:
         # get frame converted to low resolution jpeg (smooth html video viewing)
-        frame = thrds[int(idx)].get_frame_picture(width=960)
+        frame = thrds[int(idx)].get_frame_picture(width=frame_width) # max 960px
         retval, buffer = cv2.imencode('.jpg', frame)
         # stream to template and user's browser
         yield (b'--frame\r\n'
@@ -99,12 +100,17 @@ def menu_main():
 @app.route("/tiles")
 def tiles():
     template = 'tiles.html'
+    indices = []
+    for thrd in thrds:
+        indices.append(str(thrd.idx))
     rsp = make_response(
         render_template(
             template_name_or_list=template,
             navigation={
                 "icon": "cross",
-                "url": url_for("home", _external=True)}
+                "url": url_for("home", _external=True)},
+            indices=indices,
+            concurrent=str(len(indices))
         ))
     return rsp
 
