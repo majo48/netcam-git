@@ -8,7 +8,7 @@ import logging
 import time
 
 # constants
-MAX_SKIPPED = 10 # skipped frames
+MAX_SKIPPED = 30 # skipped frames
 WAIT_SHORT = 1 # [10] seconds
 WAIT_LONG = 30 # [30] seconds
 

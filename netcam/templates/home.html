@@ -12,16 +12,11 @@
      class="right-angle"
      onClick="navigateTo('/home?camera={{context.index}}&next=right')" />
 {% if context.connection_problem %}
-    <img src="/static/disconnected-icon.png"
-         style="
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 500px;
-            height: 500px;
-            margin-top: -250px; /* Half the height */
-            margin-left: -250px; /* Half the width */">
+<!-- display a still picture with two unplugged plugs (red on black) -->
+    <img src="/static/disconnected.png"
+         class="disconnected" />
 {% else %}
-    <img src="/video_feed/{{context.index}}" width="100%" >
+<!-- display a streaming video from one of many cameras, switch with '>' or '<' -->
+    <img src="/video_feed/{{context.index}}" width="100%" />
 {% endif %}
 {% endblock content %}
