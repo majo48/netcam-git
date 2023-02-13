@@ -4,17 +4,19 @@
 <style>
     /* this works best for 1x iPad and 2x camera */
     .tiledWrapper {
-        height: 100%;
-        width: auto;
+        height: 100vh;
+        width: 100vw;
     }
     .tiledWrapper img {
-        width: 100%;
         height: auto;
+        float: left;
     }
 </style>
 <div class="tiledWrapper">
 {% for index in indices %}
-    <img src="/video_feed/{{index}}/{{concurrent}}" />
+    <img src="/video_feed/{{index}}/{{concurrent}}"
+         width="{{widthpercent}}%"
+         onclick="navigateTo('/home?camera={{index}}')"/>
 {% endfor %}
 </div>
 {% endblock content %}

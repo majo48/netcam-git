@@ -8,8 +8,7 @@ import logging
 import time
 
 # constants
-MAX_SKIPPED = 30 # skipped frames
-WAIT_SHORT = 1 # [10] seconds
+MAX_SKIPPED = 30 # [30] skipped frames
 WAIT_LONG = 30 # [30] seconds
 
 class Camera(threading.Thread):
@@ -23,6 +22,8 @@ class Camera(threading.Thread):
         self.idx = idx # thread index
         self.ipaddr = ipaddr # ip address of the IP camera
         self.rtsp_url = rtsp_url # url of the external camera or webcam index
+        if len(ipaddr) == 1:
+            self.ipaddr = int(ipaddr) # this is a local webcam
         self.frame = frm # static class: netcam-git.netcam.cameras.frame.Frame
         self.skipped = 0 # skipped frame count
         self.sync_event = threading.Event()
@@ -34,9 +35,13 @@ class Camera(threading.Thread):
         Send a ping to the network camera
         :return: True is active, False is not connected
         """
-        response = os.system("ping -c 1 " + ipaddr + " > /dev/null 2>&1")
-        # and then check the response...
-        return response == 0
+        if isinstance(ipaddr, str):
+            # IP camera
+            response = os.system("ping -c 1 " + ipaddr + " > /dev/null 2>&1")
+            return response == 0
+        elif isinstance(ipaddr, int):
+            # local webcam (for testing)
+            return True # always OK
 
     def _sleep(self, secs):
         """ sleep for a number of seconds """

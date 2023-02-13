@@ -73,9 +73,7 @@ def video_feed(idx, concurrent):
 
 def generate_frames(userid, idx, concurrent):
     """ get synced frame from cameras[idx] (blocking) """
-    frame_width=960
-    if concurrent >1:
-        frame_width=int(960/math.sqrt(concurrent))
+    frame_width=int(960/concurrent)
     while True:
         # get frame converted to low resolution jpeg (smooth html video viewing)
         frame = thrds[int(idx)].get_frame_picture(width=frame_width) # max 960px
@@ -103,9 +101,15 @@ def menu_main():
 @app.route("/tiles")
 def tiles():
     template = 'tiles.html'
-    indices = []
+    indices = [] # index list, one for each camera
     for thrd in thrds:
         indices.append(str(thrd.idx))
+    conc = len(indices) # number of concurrent cameras
+    # calculate the width or each camera display
+    concwidth = 100.0
+    if 2<= conc <= 4: concwidth = 49.8 # two columns
+    elif 5 <= conc <= 9: concwidth = 33.1 # three columns
+    # build response (using template)
     rsp = make_response(
         render_template(
             template_name_or_list=template,
@@ -113,7 +117,8 @@ def tiles():
                 "icon": "cross",
                 "url": url_for("home", _external=True)},
             indices=indices,
-            concurrent=str(len(indices))
+            concurrent=str(conc),
+            widthpercent=concwidth
         ))
     return rsp
 
