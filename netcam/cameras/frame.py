@@ -47,16 +47,21 @@ class Frame:
         return round(self.fps, 1)
 
     def get_clone(self):
-        """ get a clone (protected) of the current frame """
+        """
+        get a clone (protected) of the current frame
+        :returns clone, counter, fps
+        """
         with self.semaf:
             cln = copy.deepcopy(self.frame)
-        return cln
+            count = self.frame_count
+            fps = self.fps
+            return cln, count, fps
 
     def get_picture(self, width):
         """ get the jpeg representation of the current frame """
         with self.semaf:
             pic = imutils.resize(self.frame, width)
-        return pic
+            return pic
 
 
 if __name__ == '__main__':

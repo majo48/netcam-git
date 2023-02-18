@@ -11,11 +11,12 @@ from flask import session
 from flask import request
 import cv2
 from cameras import config
+from cameras import videoclip
+from cameras import motion
 import logging
 import sys
 import uuid
 from threading import current_thread
-import math
 
 app = Flask(__name__)
 
@@ -263,15 +264,22 @@ def setup_threads(cnfg):
     """ setup all threads needed for this app """
     ips = cnfg.get_ip_adresse_list()
     from cameras import camera, frame
-    cams = []
+    thrds = []
     for idx, ip in enumerate(ips):
         frm = frame.Frame(None)
         url = cnfg.get_rtsp_url(idx)
+        # camera threads, connected to videoclip through frm
         cam = camera.Camera(idx,ip,url,frm) # instantiate a camera feed
         cam.daemon = True # define feed as daemon thread
         cam.start() # start daemon camera thread
-        cams.append(cam)
-    return cams
+        thrds.append(cam)
+        # videoclip threads, connected to camera only
+        mtn = motion.Motion(None)
+        clip = videoclip.VideoClip(idx, cam, mtn) # instantiate video clip maker
+        clip.daemon = True
+        clip.start()
+        thrds.append(clip)
+    return thrds
 
 def setup_logging():
     """ setup logging for development and production environments """

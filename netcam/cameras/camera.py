@@ -2,7 +2,6 @@
 
 import cv2
 import os
-import sys
 import threading
 import logging
 import time
@@ -103,6 +102,7 @@ class Camera(threading.Thread):
         """
         called from external function
         get cloned frame from provider (this instance)
+        :returns clone, counter, fps
         """
         # wait for sync here
         self.sync_event.wait()
