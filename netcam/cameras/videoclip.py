@@ -42,14 +42,16 @@ class VideoClip(threading.Thread):
 
     def _write_to_file(self, frame):
         """ write one frame to file """
-        self.vout.write(frame)
+        if self.vout is not None:
+            self.vout.write(frame)
         pass
 
     def _close_file(self):
         """ close the open file """
         logging.debug('<<< close video file '+self.filename)
-        self.vout.release()
-        self.vout = None
+        if self.vout is not None:
+            self.vout.release()
+            self.vout = None
         pass
 
     def _write_conditional(self, frame, leadoutfrms):

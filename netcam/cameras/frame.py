@@ -24,7 +24,8 @@ class Frame:
         """ calculate average value of frames per second, every 100 frames """
         now = time.time()
         fps = 100 / (now - self.init_time)
-        if self.fps == 0: self.fps = fps # first calculation
+        if self.fps == 0:
+            self.fps = fps # first calculation
         self.fps = (fps + self.fps) / 2  # average value
         self.init_time = now
         pass
@@ -40,11 +41,13 @@ class Frame:
 
     def get_frame_count(self):
         """ get the number of frames processed """
-        return self.frame_count
+        with self.semaf:
+            return self.frame_count
 
     def get_fps(self):
         """ get (average) frames per second """
-        return round(self.fps, 1)
+        with self.semaf:
+            return round(self.fps, 1)
 
     def get_clone(self):
         """
