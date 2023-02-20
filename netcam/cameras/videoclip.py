@@ -13,7 +13,7 @@ LEADOUT = 15 # frames after last motion detected
 class VideoClip(threading.Thread):
     """ class for making video clips for one physical video cameras """
 
-    def __init__(self, idx, cam, mtn):
+    def __init__(self, idx, nfps, cam, mtn):
         """ initialize the video clip maker """
         super().__init__()
         self.idx = idx # camera number 0, 1, 2 etc.
@@ -24,20 +24,19 @@ class VideoClip(threading.Thread):
         self.filename = 'clip-' # current filename (clip.YYYY-mm-dd.HHMMSS.avi)
         self.keep_running = True
         self.frame_counter = -1 # current frame counter (index number)
-        self.fps = 15.0 # current frames per second
+        self.nfps = nfps
+        self.fps = nfps # current frames per second
         self.vout = None
 
     def _open_file(self, frame):
         """ open file for writing, order of height, width is critical """
-        if self.fps == 0:
-            return # ignore this call
         now = datetime.now()
         self.filename = now.strftime('videos/clip'+str(self.idx)+'.%Y-%m-%d.%H%M%S.avi')
         logging.debug('>>> open video file '+self.filename)
         width, height = frame.shape[0], frame.shape[1]
         fourcc = cv2.VideoWriter_fourcc(*'MJPG')
         self.vout = cv2.VideoWriter()
-        success = self.vout.open(self.filename, fourcc, self.fps, (height, width), True)
+        success = self.vout.open(self.filename, fourcc, self.nfps, (height, width), True)
         return success
 
     def _write_to_file(self, frame):

@@ -25,7 +25,7 @@ app = Flask(__name__)
 @app.route("/home")
 def home():
     """ top level webpage """
-    idx = get_camera_index()
+    idx = _get_camera_index()
     if 'userid' not in session:
         session['userid'] = uuid.uuid4().hex # unique, 32 chars
     connection_problem = thrds[idx].has_connection_problem()
@@ -42,7 +42,7 @@ def home():
     ))
     return rsp
 
-def get_camera_index():
+def _get_camera_index():
     """
     get the camera index fom the request
     :return int
@@ -59,8 +59,16 @@ def get_camera_index():
                 ndx = idx-1
             else:
                 ndx = idx+1
-            if 0 <= ndx < len(thrds):
-                idx = ndx
+    return get_bounded_camera_index(idx)
+
+def get_bounded_camera_index(ndx):
+    """ keep the camera index inside bounds 0..last camera in config """
+    idx = ndx
+    max_idx = cnfg.get_max_camera_index()
+    if ndx < 0:
+        idx = 0
+    elif ndx > max_idx:
+       idx = max_idx
     return idx
 
 # -----------------------------------------------------------
@@ -274,8 +282,9 @@ def setup_threads(cnfg):
         cam.start() # start daemon camera thread
         thrds.append(cam)
         # videoclip threads, connected to camera only
+        nfps = cnfg.get_nominal_fps(idx)
         mtn = motion.Motion(None)
-        clip = videoclip.VideoClip(idx, cam, mtn) # instantiate video clip maker
+        clip = videoclip.VideoClip(idx, nfps, cam, mtn) # instantiate video clip maker
         clip.daemon = True
         clip.start()
         thrds.append(clip)

@@ -39,10 +39,15 @@ class Config:
             if "pw" not in self._config[idx]: logging.error("Missing 'pw' in .ENV FLASK_CAM" + str(idx))
             if "ip" not in self._config[idx]: logging.error("Missing 'ip' in .ENV FLASK_CAM" + str(idx))
             if "fps" not in self._config[idx]: logging.error("Missing 'fps' in .ENV FLASK_CAM" + str(idx))
+        self._max_camera_index = len(self._config)-1
         # set debug_mode info
         mynode = platform.uname().node
         self._debug_mode = (mynode == 'macbook.local' or mynode == 'nvr')
         pass
+
+    def get_max_camera_index(self):
+        """ get the maximum index for cameras, minimum = 0 """
+        return self._max_camera_index
 
     def get_title(self, idx):
         """ get the title of camera 'idx'  """
