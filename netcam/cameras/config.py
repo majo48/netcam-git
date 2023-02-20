@@ -1,10 +1,11 @@
 # Copyright (c) 2022 Martin Jonasse, Zug, Switzerland
 #
 # config class modul for retrieving non-public information, e.g. may contain some credentials you do not want to share.
-
+import logging
 import os
 from dotenv import load_dotenv
 import platform
+import json
 
 
 class Config:
@@ -24,42 +25,81 @@ class Config:
         load_dotenv()
         # set confidential info
         self._flask_secret = os.getenv('FLASK_SECRET')
-        self._user = os.getenv('ANNKE_USER')
-        self._password = os.getenv('ANNKE_PASSWORD')
-        ipx = os.getenv('ANNKE_IPS')
-        ipx = ipx.replace(" ", "")
-        self._ips = list(ipx.split(";"))
+        # get config list from .env
+        self._config = []
+        for cnt in range(10):
+            tpl = os.getenv('FLASK_CAM'+str(cnt))
+            if tpl is not None:
+                jsn = json.loads(tpl)
+                self._config.append(jsn)
+        # check config list for inconsistencies
+        for idx in range(len(self._config)):
+            if "ttl" not in self._config[idx]: logging.error("Missing 'ttl' in .ENV FLASK_CAM" + str(idx))
+            if "usr" not in self._config[idx]: logging.error("Missing 'usr' in .ENV FLASK_CAM" + str(idx))
+            if "pw" not in self._config[idx]: logging.error("Missing 'pw' in .ENV FLASK_CAM" + str(idx))
+            if "ip" not in self._config[idx]: logging.error("Missing 'ip' in .ENV FLASK_CAM" + str(idx))
+            if "fps" not in self._config[idx]: logging.error("Missing 'fps' in .ENV FLASK_CAM" + str(idx))
         # set debug_mode info
         mynode = platform.uname().node
         self._debug_mode = (mynode == 'macbook.local' or mynode == 'nvr')
         pass
 
-    def get_username(self):
-        """ get the common username for accessing the network cameras """
-        return self._user
-
-    def get_password(self):
-        """ get the common password for accessing the network cameras """
-        return self._password
-
-    def get_ip_adresse_list(self):
-        """ get the list of IP addresses of the network cameras """
-        return self._ips
-
-    def get_rtsp_url(self, index):
-        """ get the rtsp url for indexed ANNKE device, zero based index """
-        url = "rtsp://<user>:<password>@<ip>:554/H264/ch1/main/av_stream"
-        url = url.replace('<user>', self._user)
-        url = url.replace('<password>', self._password)
-        if (index >= 0) and (index < len(self._ips)):
-            ip = self._ips[index]
-            if ip.isnumeric(): # integer
-                return int(ip) # webcam index
-            else:              # string
-                url = url.replace('<ip>', ip) # ip address string
-                return url
+    def get_title(self, idx):
+        """ get the title of camera 'idx'  """
+        if 0 <= idx < len(self._config):
+            return self._config[idx]['ttl']
         else:
-            raise Exception('Network camera device index is out of range.')
+            return None
+
+    def get_username(self, idx):
+        """ get the username for accessing camera 'idx' """
+        if 0 <= idx < len(self._config):
+            return self._config[idx]['usr']
+        else:
+            return None
+
+    def get_password(self, idx):
+        """ get the password for accessing the camera 'idx' """
+        if 0 <= idx < len(self._config):
+            return self._config[idx]['pw']
+        else:
+            return None
+
+    def get_ip_address(self, idx):
+        """ get the ip address of camera 'idx' """
+        if 0 <= idx < len(self._config):
+            return self._config[idx]['ip']
+        else:
+            return None
+
+    def get_nominal_fps(self, idx):
+        """ get the nominal fps for camera 'idx' """
+        if 0 <= idx < len(self._config):
+            return self._config[idx]['fps']
+        else:
+            return None
+
+    def get_ip_address_list(self):
+        """ get the list of IP addresses of the network cameras """
+        ips = []
+        for idx in range(len(self._config)):
+            ips.append(self._config[idx]['ip'])
+        return ips
+
+    def get_rtsp_url(self, idx):
+        """ get the rtsp url for indexed camera device, zero based index """
+        ip = self.get_ip_address(idx)
+        if isinstance(ip, int): # integer
+            return ip # webcam index
+        elif isinstance(ip, str):
+            # ip address string, like '192.168.1.22'
+            url = "rtsp://<user>:<password>@<ip>:554/H264/ch1/main/av_stream"
+            url = url.replace('<user>', self.get_username(idx))
+            url = url.replace('<password>', self.get_password(idx))
+            url = url.replace('<ip>', ip) # ip address string
+            return url
+        else:
+            raise TypeError('IP address should be an integer or string.')
 
     def is_debug_mode(self):
         """ get DEBUG_MODE variable """

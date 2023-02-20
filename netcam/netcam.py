@@ -262,7 +262,7 @@ def get_log_items(index):
 
 def setup_threads(cnfg):
     """ setup all threads needed for this app """
-    ips = cnfg.get_ip_adresse_list()
+    ips = cnfg.get_ip_address_list()
     from cameras import camera, frame
     thrds = []
     for idx, ip in enumerate(ips):

@@ -21,7 +21,7 @@ class Camera(threading.Thread):
         self.idx = idx # thread index
         self.ipaddr = ipaddr # ip address of the IP camera
         self.rtsp_url = rtsp_url # url of the external camera or webcam index
-        if len(ipaddr) == 1:
+        if isinstance(ipaddr, str) and len(ipaddr) == 1:
             self.ipaddr = int(ipaddr) # this is a local webcam
         self.frame = frm # static class: netcam-git.netcam.cameras.frame.Frame
         self.skipped = 0 # skipped frame count
