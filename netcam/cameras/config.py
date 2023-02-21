@@ -91,17 +91,25 @@ class Config:
             ips.append(self._config[idx]['ip'])
         return ips
 
-    def get_rtsp_url(self, idx):
-        """ get the rtsp url for indexed camera device, zero based index """
+    def get_rtsp_url(self, idx, stream='main'):
+        """
+        get the rtsp url for indexed camera device, zero based index
+        Some variants, which also work:
+        "rtsp://<user>:<password>@<ip>:554/H264/ch1/main/av_stream" [default]
+        "rtsp://<user>:<password>@<ip>:554/H264/ch1/sub/av_stream" low resolution 640 x 480
+        "rtsp://<user>:<password>@<ip>:554/H264/ch2/main/av_stream" same as default
+        "rtsp://<user>:<password>@<ip>:554/Streaming/Channels/101?transport-mode=unicast&profile=Profile_1" same as default
+        """
         ip = self.get_ip_address(idx)
         if isinstance(ip, int): # integer
             return ip # webcam index
         elif isinstance(ip, str):
             # ip address string, like '192.168.1.22'
-            url = "rtsp://<user>:<password>@<ip>:554/H264/ch1/main/av_stream"
+            url = "rtsp://<user>:<password>@<ip>:554/H264/ch1/<stream>/av_stream"
             url = url.replace('<user>', self.get_username(idx))
             url = url.replace('<password>', self.get_password(idx))
             url = url.replace('<ip>', ip) # ip address string
+            url = url.replace('<stream>', stream)
             return url
         else:
             raise TypeError('IP address should be an integer or string.')
