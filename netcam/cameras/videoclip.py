@@ -24,9 +24,11 @@ class VideoClip(threading.Thread):
         self.filename = 'clip-' # current filename (clip.YYYY-mm-dd.HHMMSS.avi)
         self.keep_running = True
         self.frame_counter = -1 # current frame counter (index number)
-        self.nfps = nfps
+        self.previous_counter = 0 # previous frame counter (index number)
+        self.delta_average = 0 # frames missed: average(current-previous)
+        self.nfps = nfps # nominal frames per second
         self.fps = nfps # current frames per second
-        self.vout = None
+        self.vout = None # VideoWriter object
 
     def _open_file(self, frame):
         """ open file for writing, order of height, width is critical """
@@ -88,6 +90,12 @@ class VideoClip(threading.Thread):
         while self.keep_running:
             # get video frame from camara buffer
             frame, self.frame_counter, self.fps = self.camera.get_frame_clone() # thread safe buffer (blocking)
+            delta = self.frame_counter - self.previous_counter
+            self.previous_counter = self.frame_counter
+            if delta < LEADOUT:
+                self.delta_average = (self.delta_average + delta)/2
+            else:
+                self.delta_average = delta
             # detect any motions
             motion_detected, decorated_frame = self.motion.parse_frame(frame)
             if motion_detected:
@@ -100,6 +108,7 @@ class VideoClip(threading.Thread):
             self._write_conditional(self.fifo[-1], leadoutsecs )
             pass
 
+        logging.debug('Quality: '+str(self.delta_average)+' (should be 1.00).')
         if self.writemode:
             self._close_file()
         pass # end run
