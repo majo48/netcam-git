@@ -109,16 +109,6 @@ class Camera(threading.Thread):
         # restarted the consumer task
         return self.frame.get_clone()
 
-    def get_frame_picture(self, width=1920):
-        """
-        called from external function
-        get picture frame from provider (this instance)
-        """
-        # wait for sync here
-        self.sync_event.wait()
-        # restarted the consumer task
-        return self.frame.get_picture(width)
-
     def has_connection_problem(self):
         """ has a connection problem been detected? """
         return self.skipped >= MAX_SKIPPED

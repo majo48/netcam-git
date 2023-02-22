@@ -9,14 +9,15 @@ from flask import url_for
 from flask import Response
 from flask import session
 from flask import request
-import cv2
 from cameras import config
 from cameras import videoclip
 from cameras import motion
+from cameras import camera, frame
+from threading import current_thread
+import cv2
 import logging
 import sys
 import uuid
-from threading import current_thread
 
 app = Flask(__name__)
 
@@ -28,7 +29,7 @@ def home():
     idx = _get_camera_index()
     if 'userid' not in session:
         session['userid'] = uuid.uuid4().hex # unique, 32 chars
-    connection_problem = thrds[idx].has_connection_problem()
+    connection_problem = thrds[idx]["camera"].has_connection_problem()
     template='home.html'
     rsp = make_response(
         render_template(
@@ -82,14 +83,15 @@ def video_feed(idx, concurrent):
 
 def generate_frames(userid, idx, concurrent):
     """ get synced frame from cameras[idx] (blocking) """
-    frame_width=int(960/concurrent)
+    rtsp_url = cnfg.get_rtsp_url(int(idx), stream='sub')  # 640 x 480 pixel substream
+    stream = cv2.VideoCapture(rtsp_url)
     while True:
-        # get frame converted to low resolution jpeg (smooth html video viewing)
-        frame = thrds[int(idx)].get_frame_picture(width=frame_width) # max 960px
-        retval, buffer = cv2.imencode('.jpg', frame)
-        # stream to template and user's browser
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+        success, frame = stream.read() # read one frame 640 x 480
+        if success and frame is not None:
+            retval, buffer = cv2.imencode('.jpg', frame)
+            # stream to template and user's browser
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
     pass # managed by Flask
 
 # -----------------------------------------------------------
@@ -111,8 +113,8 @@ def menu_main():
 def tiles():
     template = 'tiles.html'
     indices = [] # index list, one for each camera
-    for thrd in thrds:
-        indices.append(str(thrd.idx))
+    for x in range(len(cnfg.get_ip_address_list())):
+        indices.append(str(x))
     conc = len(indices) # number of concurrent cameras
     # calculate the width or each camera display
     concwidth = 100.0
@@ -207,9 +209,9 @@ def get_state_items():
     state_items.append(('CAMERAS'))
     idx = 1
     for thrd in thrds:
-        fps = thrd.get_fps()
-        frames = thrd.get_frame_count()
-        skipped = thrd.get_skipped_count()
+        fps = thrd["camera"].get_fps()
+        frames = thrd["camera"].get_frame_count()
+        skipped = thrd["camera"].get_skipped_count()
         state_items.append(
             'Camera: '+str(idx)+', frames per second: '+str(fps)+', frames: '+str(frames)+', skipped: '+str(skipped)
         )
@@ -271,7 +273,6 @@ def get_log_items(index):
 def setup_threads(cnfg):
     """ setup all threads needed for this app """
     ips = cnfg.get_ip_address_list()
-    from cameras import camera, frame
     thrds = []
     for idx, ip in enumerate(ips):
         frm = frame.Frame(None)
@@ -280,14 +281,14 @@ def setup_threads(cnfg):
         cam = camera.Camera(idx,ip,url,frm) # instantiate a camera feed
         cam.daemon = True # define feed as daemon thread
         cam.start() # start daemon camera thread
-        thrds.append(cam)
         # videoclip threads, connected to camera only
         nfps = cnfg.get_nominal_fps(idx)
         mtn = motion.Motion(None)
         clip = videoclip.VideoClip(idx, nfps, cam, mtn) # instantiate video clip maker
         clip.daemon = True
         clip.start()
-        thrds.append(clip)
+        # storage
+        thrds.append({"camera": cam, "video":clip})
     return thrds
 
 def setup_logging():
@@ -347,7 +348,9 @@ if __name__ == "__main__":
 
     # stop and kill threads -----
     for thrd in thrds:
-        thrd.terminate_thread()
-        thrd.join()
+        thrd["camera"].terminate_thread()
+        thrd["camera"].join()
+        thrd["video"].terminate_thread()
+        thrd["video"].join()
     # finished log message
     logging.info("<<< Stop Flask application '"+app.name+"'")
