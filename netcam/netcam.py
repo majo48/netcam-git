@@ -60,6 +60,7 @@ def _get_camera_index():
                 ndx = idx-1
             else:
                 ndx = idx+1
+            idx = ndx # set index to next index
     return get_bounded_camera_index(idx)
 
 def get_bounded_camera_index(ndx):
