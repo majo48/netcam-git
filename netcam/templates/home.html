@@ -7,12 +7,12 @@
 -->
 <script type="text/javascript">
     /* the onload event triggers when the video is sent to the image tag /video_feed */
-    window.onload = function(){ setTimeout( function(){
+    window.onload = function(){
         const gifs = document.querySelectorAll('.loading');
         gifs.forEach(gif => {
             gif.style.visibility = 'hidden';
-        });
-    }, 15); };
+        })
+    };
 </script>
 <!-- display an animated gif -->
 <img src="/static/loading.gif"
