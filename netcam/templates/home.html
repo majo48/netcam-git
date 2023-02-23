@@ -5,6 +5,19 @@
      REMINDER: static if - then - else condition,
      ========  does not change dynamically, use F5 (refresh button)
 -->
+<script type="text/javascript">
+    /* the onload event triggers when the video is sent to the image tag /video_feed */
+    window.onload = function(){ setTimeout( function(){
+        const gifs = document.querySelectorAll('.loading');
+        gifs.forEach(gif => {
+            gif.style.visibility = 'hidden';
+        });
+    }, 15); };
+</script>
+<!-- display an animated gif -->
+<img src="/static/loading.gif"
+     class="loading" />
+<!-- display left and right navigation cameras -->
 <img src="/static/left-angle.png"
      class="left-angle"
      onClick="navigateTo('/home?camera={{context.index}}&next=left')" />
@@ -12,7 +25,7 @@
      class="right-angle"
      onClick="navigateTo('/home?camera={{context.index}}&next=right')" />
 {% if context.connection_problem %}
-<!-- display a still picture with two unplugged plugs (red on black) -->
+<!-- display a still picture with two plugs (unplugged, red on black) -->
     <img src="/static/disconnected.png"
          class="disconnected" />
 {% else %}
