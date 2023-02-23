@@ -208,7 +208,7 @@ def get_state_items():
         state_items.append(gtp)
     # get camera info -----
     state_items.append(('CAMERAS'))
-    idx = 1
+    idx = 0
     for thrd in thrds:
         fps = thrd["camera"].get_fps()
         frames = thrd["camera"].get_frame_count()
