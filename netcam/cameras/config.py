@@ -2,10 +2,12 @@
 #
 # config class modul for retrieving non-public information, e.g. may contain some credentials you do not want to share.
 import logging
+import sys
 import os
 from dotenv import load_dotenv
 import platform
 import json
+import socket
 
 
 class Config:
@@ -25,6 +27,7 @@ class Config:
         load_dotenv()
         # set confidential info
         self._flask_secret = os.getenv('FLASK_SECRET')
+
         # get config list from .env
         self._config = []
         for cnt in range(10):
@@ -32,6 +35,7 @@ class Config:
             if tpl is not None:
                 jsn = json.loads(tpl)
                 self._config.append(jsn)
+
         # check config list for inconsistencies
         for idx in range(len(self._config)):
             if "ttl" not in self._config[idx]: logging.error("Missing 'ttl' in .ENV FLASK_CAM" + str(idx))
@@ -40,10 +44,40 @@ class Config:
             if "ip" not in self._config[idx]: logging.error("Missing 'ip' in .ENV FLASK_CAM" + str(idx))
             if "fps" not in self._config[idx]: logging.error("Missing 'fps' in .ENV FLASK_CAM" + str(idx))
         self._max_camera_index = len(self._config)-1
+
+        # set tcp ports for ipc clients (cameras) and flask app
+        self._ipc_ports = []
+        for idx in range(len(self._config)):
+            port = self._get_free_port(idx)
+            self._ipc_ports.append(port)
+        self._ipc_port_flask = self._get_free_port()
+        self._ipc_authkey = os.urandom(14) # random bytes suitable for cryptographic use
+
         # set debug_mode info
         mynode = platform.uname().node
         self._debug_mode = (mynode == 'macbook.local' or mynode == 'nvr')
         pass
+
+    def _get_free_port(self, idx):
+        """ get next free port from the operating system for ipc client no. idx """
+        sock = socket.socket()
+        sock.bind(('', 0))
+        return sock.getsockname()[1]
+
+    def get_ipc_port(self, idx):
+        """ get the ipc port reserved for camera idx """
+        if 0 <= idx < len(self._config):
+            return self._ipc_ports[idx]
+        else:
+            return None
+
+    def get_ipc_port_flask(self):
+        """ get the ipc port reserved for the flask app """
+        return self._ipc_port_flask
+
+    def get_ipc_authkey(self):
+        """ get the ipc authentication key """
+        return self._ipc_authkey
 
     def get_max_camera_index(self):
         """ get the maximum index for cameras, minimum = 0 """
@@ -94,11 +128,11 @@ class Config:
     def get_rtsp_url(self, idx, stream='main'):
         """
         get the rtsp url for indexed camera device, zero based index
-        Some variants, which also work:
+        Some variants, which work:
         "rtsp://<user>:<password>@<ip>:554/H264/ch1/main/av_stream" [default]
-        "rtsp://<user>:<password>@<ip>:554/H264/ch1/sub/av_stream" low resolution 640 x 480
-        "rtsp://<user>:<password>@<ip>:554/H264/ch2/main/av_stream" same as default
-        "rtsp://<user>:<password>@<ip>:554/Streaming/Channels/101?transport-mode=unicast&profile=Profile_1" same as default
+        "rtsp://<user>:<password>@<ip>:554/H264/ch1/sub/av_stream" [low resolution 640 x 480]
+        "rtsp://<user>:<password>@<ip>:554/H264/ch2/main/av_stream" [same as default]
+        "rtsp://<user>:<password>@<ip>:554/Streaming/Channels/101?transport-mode=unicast&profile=Profile_1" [same as default]
         """
         ip = self.get_ip_address(idx)
         if isinstance(ip, int): # integer
@@ -113,6 +147,38 @@ class Config:
             return url
         else:
             raise TypeError('IP address should be an integer or string.')
+
+    def set_logging(self):
+        """
+        setup logging for development and production environments
+        same for netcam.py and recorder.py
+        """
+        myfmt = '%(asctime)s | %(levelname)s | %(process)d | %(threadName)s | %(module)s | %(message)s'
+        # setup logging formats (depends on environments)
+        if self.is_debug_mode():
+            # basic configuration for development environment
+            logging.basicConfig(
+                format=myfmt,
+                filename=self.get_log_filename(),
+                filemode='w',
+                encoding='utf-8',
+                level='DEBUG')
+            # also send logs to the console
+            lggr = logging.getLogger()
+            lggr.setLevel(logging.DEBUG)
+            hndlr = logging.StreamHandler(sys.stdout)
+            hndlr.setLevel(logging.DEBUG)
+            hndlr.setFormatter(logging.Formatter(myfmt))
+            lggr.addHandler(hndlr)
+        else:
+            # basic configuration for production environment
+            logging.basicConfig(
+                format=myfmt,
+                filename=self.get_log_filename(),
+                filemode='a',
+                encoding='utf-8',
+                level='INFO')
+        pass
 
     def is_debug_mode(self):
         """ get DEBUG_MODE variable """

@@ -1,6 +1,13 @@
 # Copyright (c) 2022 Martin Jonasse, Zug, Switzerland
-import threading
 
+# Flask webpage for displaying online and offline videos.
+# - Based upon some cheap ANNKE IP cameras (AN-I91BL0102),
+#   which have two video streams: main(8MP) and sub(640x480).
+# This Flask App uses long-running-child-processes (recorder.py)
+# - managed with: tbd
+# - IPC with:     tbd
+
+import threading
 from flask import Flask
 from flask import render_template
 from flask import make_response
@@ -14,6 +21,7 @@ from cameras import videoclip
 from cameras import motion
 from cameras import camera, frame
 from threading import current_thread
+from multiprocessing.connection import Client
 import cv2
 import logging
 import sys
@@ -29,7 +37,8 @@ def home():
     idx = _get_camera_index()
     if 'userid' not in session:
         session['userid'] = uuid.uuid4().hex # unique, 32 chars
-    connection_problem = thrds[idx]["camera"].has_connection_problem()
+    info = get_camera_info(idx)
+    connection_problem = info.get('cnnprbl')
     template='home.html'
     rsp = make_response(
         render_template(
@@ -207,16 +216,15 @@ def get_state_items():
         gtp = get_thread_position(thread)
         state_items.append(gtp)
     # get camera info -----
-    state_items.append(('CAMERAS'))
-    idx = 0
-    for thrd in thrds:
-        fps = thrd["camera"].get_fps()
-        frames = thrd["camera"].get_frame_count()
-        skipped = thrd["camera"].get_skipped_count()
+    state_items.append(('CAMERAS')) # print header
+    for idx in range(len(cnfg.get_ip_address_list())):
+        info = get_camera_info(idx)
         state_items.append(
-            'Camera: '+str(idx)+', frames per second: '+str(fps)+', frames: '+str(frames)+', skipped: '+str(skipped)
+            'Camera: '+str(idx)+
+            ', frames per second: '+str(info.get('cam_fps'))+
+            ', frames: '+str(info.get('frm_cnt'))+
+            ', skipped: '+str(info.get('frm_skp'))
         )
-        idx += 1
     # exit -----
     return state_items
 
@@ -233,6 +241,18 @@ def get_thread_position(thread):
         for key, val in dict.items():
             strng += key + ": " + val + ", "
         return strng[:-2]
+
+def get_camera_info(idx):
+    """ get information from ipc server (camera) """
+    address = ('localhost', cnfg.get_ipc_port(idx))
+    with Client(address, authkey=cnfg.get_ipc_authkey()) as conn:
+        conn.send('information?') # information request
+        info = conn.recv() # wait for information response
+        if type(info) is dict:
+            return info
+        else:
+            logging.error('IPC response error: '+str(info))
+            return {} # empty container
 
 # -----------------------------------------------------------
 @app.route("/logs")
@@ -271,26 +291,13 @@ def get_log_items(index):
 
 # ===========================================================
 
-def setup_threads(cnfg):
-    """ setup all threads needed for this app """
+def setup_long_running_processes(cnfg):
+    """ setup long-running processes (recorder.py) """
     ips = cnfg.get_ip_address_list()
-    thrds = []
     for idx, ip in enumerate(ips):
-        frm = frame.Frame(None)
-        url = cnfg.get_rtsp_url(idx)
-        # camera threads, connected to videoclip through frm
-        cam = camera.Camera(idx,ip,url,frm) # instantiate a camera feed
-        cam.daemon = True # define feed as daemon thread
-        cam.start() # start daemon camera thread
-        # videoclip threads, connected to camera only
-        nfps = cnfg.get_nominal_fps(idx)
-        mtn = motion.Motion(None)
-        clip = videoclip.VideoClip(idx, nfps, cam, mtn) # instantiate video clip maker
-        clip.daemon = True
-        clip.start()
-        # storage
-        thrds.append({"camera": cam, "video":clip})
-    return thrds
+        pass
+        # todo initialize recorder processes here
+    pass
 
 def setup_logging():
     """ setup logging for development and production environments """
@@ -334,7 +341,7 @@ if __name__ == "__main__":
     app.secret_key = cnfg.get_flask_secret()
 
     # setup all threads needed for the application -----
-    thrds = setup_threads(cnfg)
+    setup_long_running_processes(cnfg)
 
     # run Flask server -----
     if cnfg.is_debug_mode():
@@ -347,11 +354,9 @@ if __name__ == "__main__":
         # run in production mode
         app.run(debug=False, use_debugger=False, use_reloader=False)
 
-    # stop and kill threads -----
-    for thrd in thrds:
-        thrd["camera"].terminate_thread()
-        thrd["camera"].join()
-        thrd["video"].terminate_thread()
-        thrd["video"].join()
+    # stop and kill processes -----
+    for idx in range(len(cnfg.get_ip_address_list())):
+        pass # todo kill ipc processes here
+
     # finished log message
     logging.info("<<< Stop Flask application '"+app.name+"'")
