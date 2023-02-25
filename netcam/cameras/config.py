@@ -50,8 +50,9 @@ class Config:
         for idx in range(len(self._config)):
             port = self._get_free_port(idx)
             self._ipc_ports.append(port)
-        self._ipc_port_flask = self._get_free_port()
-        self._ipc_authkey = os.urandom(14) # random bytes suitable for cryptographic use
+        self._ipc_port_flask = self._get_free_port(idx+1)
+        s = os.getenv('FLASK_IPC_SECRET')
+        self._ipc_authkey = s.encode('ascii')
 
         # set debug_mode info
         mynode = platform.uname().node

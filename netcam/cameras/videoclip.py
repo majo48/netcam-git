@@ -7,8 +7,8 @@ import logging
 import collections
 from datetime import datetime
 
-LEADIN = 15 # frames before first motion detected
-LEADOUT = 15 # frames after last motion detected
+LEADIN = 5 # frames before first motion detected
+LEADOUT = 5 # frames after last motion detected
 
 class VideoClip(threading.Thread):
     """ class for making video clips for one physical video cameras """
@@ -85,7 +85,7 @@ class VideoClip(threading.Thread):
         connect to camera through the frame buffer, detect motion and make video clips
         stored in the local filesystem and remote cloud backup
         """
-        logging.info('>>> Started video clip maker no. '+str(self.idx))
+        logging.info(">>> Started video clip maker in " + threading.currentThread().getName())
         leadoutsecs = 0 # counts between LEADOUT and zero
         while self.keep_running:
             # get video frame from camara buffer
@@ -108,9 +108,10 @@ class VideoClip(threading.Thread):
             self._write_conditional(self.fifo[-1], leadoutsecs )
             pass
 
-        logging.debug('Quality: '+str(self.delta_average)+' (should be 1.00).')
+        logging.debug('*** Quality benchmark: '+str(self.delta_average)+' (should be 1.00).')
         if self.writemode:
             self._close_file()
+        logging.info("<<< Stopped video clip maker in " + threading.currentThread().getName())
         pass # end run
 
     def terminate_thread(self):

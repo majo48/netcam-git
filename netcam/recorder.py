@@ -2,7 +2,7 @@
 
 # Long-running-child-process for recording video motions.
 # This process has no bindings with the Flask application
-# other than ipc communication commends:
+# other than ipc communication commands:
 #     'information?' request for information from the camera
 #     'terminate!'   request for termination of the recording process
 # and logging events to disk files (.log and .avi).
@@ -37,6 +37,7 @@ def ipc_server():
         msg = conn.recv()
         # do something with msg
         if msg == 'terminate!':
+            conn.send('OK')
             # close connection and kill all threads in this app
             conn.close()
             break
@@ -96,13 +97,14 @@ def setup_threads(cnfg, idx):
 
 if __name__ == "__main__":
     """ initialize the netcam app """
+    pass # breakpoint for debugging
     # setup configuration -----
     cnfg = config.Config() # get common configuration information
     cnfg.set_logging() # setup logging configuration
 
     # parse commandline -----
     recorder_index = parse_cli()
-    logging.info(">>> Start recorder application no. "+str())
+    logging.info(">>> Start recorder application no. "+str(recorder_index))
 
     # build all threads: camera, videoclip and ipc -----
     thrds = setup_threads(cnfg, recorder_index)
