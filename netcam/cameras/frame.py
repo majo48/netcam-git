@@ -52,13 +52,12 @@ class Frame:
     def get_clone(self):
         """
         get a clone (protected) of the current frame
-        :returns clone, counter, fps
+        :returns clone, counter
         """
         with self.semaf:
             cln = copy.deepcopy(self.frame)
             count = self.frame_count
-            fps = self.fps
-            return cln, count, fps
+            return cln, count
 
     def get_picture(self, width):
         """ get the jpeg representation of the current frame """

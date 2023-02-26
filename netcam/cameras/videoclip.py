@@ -6,9 +6,19 @@ import threading
 import logging
 import collections
 from datetime import datetime
+from enum import Enum
 
-LEADIN = 5 # frames before first motion detected
-LEADOUT = 5 # frames after last motion detected
+LEADIN = 10 # frames before first motion detected
+LEADOUT = 10 # frames after last motion detected
+LEADDELTA = 3 # DELTA: must be max. LEADIN or LEADOUT
+
+class Status(Enum):
+    BEGIN = 0
+    WAITING = 1
+    STARTING = 2
+    RECORDING = 3
+    STOPPING = 4
+    END = 5
 
 class VideoClip(threading.Thread):
     """ class for making video clips for one physical video cameras """
@@ -19,7 +29,6 @@ class VideoClip(threading.Thread):
         self.idx = idx # camera number 0, 1, 2 etc.
         self.camera = cam # frame buffer mpeg
         self.motion = mtn # motion detector
-        self.writemode = False # True: writing data to file, False: inactive
         self.fifo = collections.deque([], maxlen=LEADIN) # FIFO queue with [15] frames
         self.filename = 'clip-' # current filename (clip.YYYY-mm-dd.HHMMSS.avi)
         self.keep_running = True
@@ -29,6 +38,9 @@ class VideoClip(threading.Thread):
         self.nfps = nfps # nominal frames per second
         self.fps = nfps # current frames per second
         self.vout = None # VideoWriter object
+        self._rstate = Status.BEGIN.value # enumeration
+        self._rcount = 0
+        self._pixelareas = []
 
     def _open_file(self, frame):
         """ open file for writing, order of height, width is critical """
@@ -55,30 +67,68 @@ class VideoClip(threading.Thread):
             self.vout = None
         pass
 
-    def _write_conditional(self, frame, leadoutfrms):
-        """
-        write frame to file conditionally
-        conditions:
-        - leadoutfrms: starts at LEADOUT and is decremented once per frame
-        - self.writemode: True: write frame to file, False: inactive
-        """
-        if frame is None:
-            return None # skip frame
-        # check conditions
-        if leadoutfrms > 0 and not self.writemode:
-            # first frame with motion detected
-            self.writemode = True
-            self._open_file(frame) # open new file
-            self._write_to_file(frame) # write frame to file
-        elif leadoutfrms > 0 and self.writemode:
-            # continue writing frame to file
-            self._write_to_file(frame)
-        elif leadoutfrms == 0 and self.writemode:
-            # stop writing frames to file
-            self._write_to_file(frame)
+    def _record(self, motion_detected, pixelarea, frame):
+        """ state machine for recording videoclips """
+        if self._rstate == Status.BEGIN.value:
+            self._rstate = Status.WAITING.value
+
+        elif self._rstate == Status.WAITING.value:
+            if motion_detected:
+                self._rstate = Status.STARTING.value
+                self._rcount = 1 # set counter
+                self._pixelareas.append(pixelarea)
+
+        elif self._rstate == Status.STARTING.value:
+            if motion_detected:
+                self._rcount += 1 # increment counter
+                self._pixelareas.append(pixelarea)
+                if self._rcount >= LEADIN-LEADDELTA:
+                    if self._open_file(frame):
+                        # successfully opened .avi file
+                        self._write_to_file(frame) # write first frame to file
+                        self._rstate = Status.RECORDING.value
+                        # logging.debug('??? Pixels before opening file: '+str(self._pixelareas)) # [debug]
+                        self._pixelareas = []
+                    else:
+                        # failed to open file
+                        logging.critical("Failed to open file: "+self.filename)
+                        self._rstate = Status.WAITING.value # try again
+            else:
+                # no motion detected while starting, fall back immediately
+                self._rstate = Status.WAITING.value # change state
+
+        elif self._rstate == Status.RECORDING.value:
+            self._write_to_file(frame)  # write next frame to file
+            if not motion_detected:
+                self._rstate = Status.STOPPING.value # change state
+                self._rcount = 1 # set counter, first missing motion detected
+
+        elif self._rstate == Status.STOPPING.value:
+            self._write_to_file(frame)  # write next frame to file
+            if motion_detected:
+                self._rstate = Status.RECORDING.value  # change state
+            else:
+                self._rcount += 1  # increment counter
+                if self._rcount >= LEADOUT-LEADDELTA:
+                    self._close_file()
+                    self._rstate = Status.WAITING.value  # change state
+
+        elif self._rstate == Status.END.value:
             self._close_file()
-            self.writemode = False
+        else:
+            logging.critical("Illegal recording state encountered: "+str(self._rstate))
+            self._rstate = Status.WAITING.value # try again
         pass
+
+    def _quality_test(self, frame_counter):
+        """ calculate quality of frames missed """
+        delta = frame_counter - self.previous_counter
+        self.previous_counter = frame_counter
+        if delta < LEADOUT:
+            avg = (self.delta_average + delta) / 2
+        else:
+            avg = delta
+        return avg
 
     def run(self):
         """
@@ -86,31 +136,26 @@ class VideoClip(threading.Thread):
         stored in the local filesystem and remote cloud backup
         """
         logging.info(">>> Started video clip maker in " + threading.currentThread().getName())
-        leadoutsecs = 0 # counts between LEADOUT and zero
         while self.keep_running:
             # get video frame from camara buffer
-            frame, self.frame_counter, self.fps = self.camera.get_frame_clone() # thread safe buffer (blocking)
-            delta = self.frame_counter - self.previous_counter
-            self.previous_counter = self.frame_counter
-            if delta < LEADOUT:
-                self.delta_average = (self.delta_average + delta)/2
-            else:
-                self.delta_average = delta
-            # detect any motions
-            motion_detected, decorated_frame = self.motion.parse_frame(frame)
-            if motion_detected:
-                leadoutsecs = LEADOUT
-            elif leadoutsecs >0:
-                leadoutsecs -= 1
+            frame, self.frame_counter = self.camera.get_frame_clone() # thread safe buffer (blocking)
+            self.delta_average = self._quality_test(self.frame_counter) # quality benchmark
+
+            # detect motions
+            motion_detected, pixelarea, decorated_frame = self.motion.parse_frame(frame)
+
             # add frame to left side of bounded FIFO buffer
             self.fifo.appendleft(decorated_frame)
+
             # get right side frame from FIFO buffer and write to file conditionally
-            self._write_conditional(self.fifo[-1], leadoutsecs )
+            self._record(motion_detected, pixelarea, self.fifo[-1])
+            # self._record(motion_detected, pixels, frame) # [debug] w.o. green motion objects (boxes)
             pass
 
         logging.debug('*** Quality benchmark: '+str(self.delta_average)+' (should be 1.00).')
-        if self.writemode:
+        if self._rstate == Status.RECORDING.value or self._rstate == Status.STOPPING.value:
             self._close_file()
+        self._rstate = Status.END.value
         logging.info("<<< Stopped video clip maker in " + threading.currentThread().getName())
         pass # end run
 

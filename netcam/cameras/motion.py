@@ -42,20 +42,22 @@ class Motion:
                 self.height = frame.shape[1]
             # ignore motion in frames for a short time
             self.warmup -= 1
-            return False, frame
+            return False, 0, frame # motion_detected, pixelarea, frame
 
         # check for motions
+        pixelarea = 0
         motion_detected = False
         contours, hierarchy = cv2.findContours(fgMask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) # [default]
         for i in range(len(contours)):
             x, y, w, h = cv2.boundingRect(contours[i])
             area = w * h # pixels
             if area > self.FG_MIN_AREA:
+                pixelarea += area
                 motion_detected = True
                 # decorate frame with little green boxes (motions)
                 cv2.rectangle(frame, (x,y), (x+w,y+h), (0, 255, 0), 4)
 
-        return motion_detected, frame
+        return motion_detected, pixelarea, frame
 
 
 if __name__ == '__main__':

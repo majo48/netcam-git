@@ -102,7 +102,7 @@ class Camera(threading.Thread):
         """
         called from external function
         get cloned frame from provider (this instance)
-        :returns clone, counter, fps
+        :returns clone, counter
         """
         # wait for sync here
         self.sync_event.wait()

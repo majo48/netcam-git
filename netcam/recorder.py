@@ -97,8 +97,6 @@ def setup_threads(cnfg, idx):
 
 if __name__ == "__main__":
     """ initialize the netcam app """
-    pass # breakpoint for debugging
-    # setup configuration -----
     cnfg = config.Config() # get common configuration information
     cnfg.set_logging() # setup logging configuration
 
