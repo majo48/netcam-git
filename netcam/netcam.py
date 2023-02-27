@@ -3,7 +3,7 @@
 # Flask webpage for displaying online and offline videos.
 # - Based upon some cheap ANNKE IP cameras (AN-I91BL0102),
 #   which have two video streams: main(8MP) and sub(640x480).
-# This Flask App uses long-running-child-processes (recorder.py)
+# This Flask App uses long-running-child-processes (netcam-recorder.py)
 # - managed with: tbd
 # - IPC with:     tbd
 
@@ -292,7 +292,7 @@ def get_log_items(index):
 # ===========================================================
 
 def setup_long_running_processes(cnfg):
-    """ setup long-running processes (recorder.py) """
+    """ setup long-running processes (netcam-recorder.py) """
     ips = cnfg.get_ip_address_list()
     for idx, ip in enumerate(ips):
         pass

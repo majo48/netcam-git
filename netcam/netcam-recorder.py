@@ -60,7 +60,7 @@ def ipc_server(syncevent):
         syncevent.set() # kill threads
 
 def parse_cli():
-    """ parse the commandline: python3 recorder.py idx """
+    """ parse the commandline: python3 netcam-recorder.py idx """
     parser = argparse.ArgumentParser(
         description="Start video recordings.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)

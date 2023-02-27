@@ -152,7 +152,7 @@ class Config:
     def set_logging(self):
         """
         setup logging for development and production environments
-        same for netcam.py and recorder.py
+        same for netcam.py and netcam-recorder.py
         """
         myfmt = '%(asctime)s | %(levelname)s | %(process)d | %(threadName)s | %(module)s | %(message)s'
         # setup logging formats (depends on environments)
