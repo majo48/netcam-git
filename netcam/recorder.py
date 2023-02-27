@@ -27,31 +27,37 @@ def _get_camera_info():
             "cnnprbl": cam.has_connection_problem()}
     return info
 
-def ipc_server():
+def ipc_server(syncevent):
     """ inter process communication thread """
-    address = ('localhost', cnfg.get_ipc_port(recorder_index)) # AF_INET - TCP socket
+    terminate_origin = 'n/a'
+    address = ('localhost', cnfg.get_ipc_port(recorder_index))  # AF_INET - TCP socket
     listener = Listener(address, authkey=cnfg.get_ipc_authkey())
-    conn = listener.accept()
-    logging.debug('>>>> IPC connection accepted from ', listener.last_accepted)
-    while True:
-        msg = conn.recv()
-        # do something with msg
-        if msg == 'terminate!':
-            conn.send('OK')
-            # close connection and kill all threads in this app
-            conn.close()
-            break
-        elif msg == 'information?':
-            # provide camera information for the Flask app
-            conn.send(_get_camera_info()) # send to Flask application
-        else:
-            logging.error('IPC received illegal verb: '+msg)
-            conn.send('Unknown verb: '+msg) # send to Flask application
-        pass
-    # terminate IPC
-    logging.debug('<<<< IPC connection closed (terminate command received).')
-    listener.close()
-    sync.set() # kill threads
+    try:
+        conn = listener.accept()
+        logging.debug('>>>> IPC connection accepted from ', listener.last_accepted)
+        while True:
+            msg = conn.recv()
+            # do something with msg
+            if msg == 'terminate!':
+                conn.send('OK')
+                terminate_origin = 'ipc'
+                # close connection and kill all threads in this app
+                conn.close()
+                break
+            elif msg == 'information?':
+                # provide camera information for the Flask app
+                conn.send(_get_camera_info()) # send to Flask application
+            else:
+                logging.error('IPC received illegal verb: '+msg)
+                conn.send('Unknown verb: '+msg) # send to Flask application
+            pass
+    except KeyboardInterrupt:
+        terminate_origin = 'keyboard'
+    finally:
+        # terminate IPC
+        logging.debug('<<<< IPC connection closed (terminate command received from '+terminate_origin+').')
+        listener.close()
+        syncevent.set() # kill threads
 
 def parse_cli():
     """ parse the commandline: python3 recorder.py idx """
@@ -66,7 +72,7 @@ def parse_cli():
         raise ValueError('recorder_index out of bounds: '+str(ridx))
     return ridx
 
-def setup_threads(cnfg, idx):
+def setup_threads(sync, cnfg, idx):
     """ setup all threads needed for this app """
     thrds = []
     frm = frame.Frame(None)
@@ -88,7 +94,7 @@ def setup_threads(cnfg, idx):
     thrds.append(clp)
 
     # ipc thread (server, listens to terminate! and information? commands)
-    ipct = Thread(ipc_server()) # instantiate ipc server
+    ipct = Thread(target=ipc_server(sync)) # instantiate ipc server
     ipct.daemon = True
     ipct.start()
     thrds.append(ipct)
@@ -100,20 +106,24 @@ if __name__ == "__main__":
     cnfg = config.Config() # get common configuration information
     cnfg.set_logging() # setup logging configuration
 
+    # define sync variable
+    sync = Event()
+
     # parse commandline -----
     recorder_index = parse_cli()
     logging.info(">>> Start recorder application no. "+str(recorder_index))
 
     # build all threads: camera, videoclip and ipc -----
-    thrds = setup_threads(cnfg, recorder_index)
+    thrds = setup_threads(sync, cnfg, recorder_index)
 
     # stop (wait) -----
-    sync = Event()
     sync.wait(timeout=None) # wait for the event to be sync.set()
 
     # kill threads
     for thrd in thrds:
-        thrd.terminate_thread()
+        attr = getattr(thrd, "terminate_thread", None)
+        if callable(attr):
+            thrd.terminate_thread()
         thrd.join()
 
     # finished log message -----
