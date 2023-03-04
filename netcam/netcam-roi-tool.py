@@ -30,8 +30,7 @@ stream.release()
 # 6. enter 'c' to close
 r = cv2.selectROI("select the area", image, showCrosshair=False)
 print(r)
-print('x1: '+str(r[0])+', y1: '+str(r[1])+', x2: '+str(r[2])+', y2: '+str(r[3]))
-print('w: '+str(r[2]-r[0])+', h: '+str(r[1]-r[3]))
+print('x1: '+str(r[0])+', y1: '+str(r[1])+', w: '+str(r[2])+', h: '+str(r[3]))
 
 # Crop image
 cropped_image = image[int(r[1]):int(r[1] + r[3]),
