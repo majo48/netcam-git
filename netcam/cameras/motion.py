@@ -13,9 +13,9 @@ class Motion:
     FG_MIN_AREA = 500       # [default] minimal size of green boxes (sensitivity)
     WARMUP_FRAMES = 100     # [default] frames read (delay) before detecting motions
 
-    def __init__(self, vidObj):
+    def __init__(self, roi):
         """ create instance of motions """
-        self.vidObj, self.width, self.height = vidObj, None, None
+        self.roi = roi # region of interest: (x,y,w,h)Tuple
         self.warmup = self.WARMUP_FRAMES
         if self.BG_SUB_METHODE == 'MOG2':
             self.backSub = cv2.createBackgroundSubtractorMOG2(
@@ -33,20 +33,20 @@ class Motion:
         pass
 
     def parse_frame(self, frame):
-        """ parse one frame in the video stream """
-        fgMask = self.backSub.apply(frame) # update the background model
+        """" parse ONE picture frame (roi) for motions """
+        cropped_frame = frame[int(self.roi[1]):int(self.roi[1] + self.roi[3]),
+                              int(self.roi[0]):int(self.roi[0] + self.roi[2])]
+        # update the background model
+        fgMask = self.backSub.apply(cropped_frame)
+        # warmup
         if self.warmup > 0:
-            if (frame is not None) and (self.width is None or self.height is None):
-                self.vidObj = frame # copy of first frame
-                self.width = frame.shape[0]
-                self.height = frame.shape[1]
-            # ignore motion in frames for a short time
+            # ignore motion in frames for a short while
             self.warmup -= 1
             return False, 0, frame # motion_detected, pixelarea, frame
-
         # check for motions
         pixelarea = 0
         motion_detected = False
+        x1, y1 = self.roi[0], self.roi[1]
         contours, hierarchy = cv2.findContours(fgMask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) # [default]
         for i in range(len(contours)):
             x, y, w, h = cv2.boundingRect(contours[i])
@@ -55,8 +55,8 @@ class Motion:
                 pixelarea += area
                 motion_detected = True
                 # decorate frame with little green boxes (motions)
-                cv2.rectangle(frame, (x,y), (x+w,y+h), (0, 255, 0), 4)
-
+                cv2.rectangle(frame, (x+x1,y+y1), (x+x1+w,y+y1+h), (0, 255, 0), 4)
+        # finish
         return motion_detected, pixelarea, frame
 
 

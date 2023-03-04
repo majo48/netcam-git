@@ -87,7 +87,8 @@ def setup_threads(sync, cnfg, idx):
 
     # videoclip threads, connected to camera only
     nfps = cnfg.get_nominal_fps(idx)
-    mtn = motion.Motion(None)
+    roi = cnfg.get_roi(idx)
+    mtn = motion.Motion(roi)
     clp = videoclip.VideoClip(idx, nfps, cam, mtn) # instantiate video clip maker
     clp.daemon = True
     clp.start()
