@@ -1,6 +1,7 @@
 # Copyright (c) 2022 Martin Jonasse, Zug, Switzerland
 #
 # config class modul for retrieving non-public information, e.g. may contain some credentials you do not want to share.
+
 import logging
 import sys
 import os
@@ -43,6 +44,7 @@ class Config:
             if "pw" not in self._config[idx]: logging.error("Missing 'pw' in .ENV FLASK_CAM" + str(idx))
             if "ip" not in self._config[idx]: logging.error("Missing 'ip' in .ENV FLASK_CAM" + str(idx))
             if "fps" not in self._config[idx]: logging.error("Missing 'fps' in .ENV FLASK_CAM" + str(idx))
+            if "roi" not in self._config[idx]: logging.error("Missing 'roi' in .ENV FLASK_CAM" + str(idx))
         self._max_camera_index = len(self._config)-1
 
         # set tcp ports for ipc clients (cameras) and flask app
@@ -116,6 +118,14 @@ class Config:
         """ get the nominal fps for camera 'idx' """
         if 0 <= idx < len(self._config):
             return self._config[idx]['fps']
+        else:
+            return None
+
+    def get_roi(self, idx):
+        """ get the region of interest (x,y,w,h) for camera 'idx' """
+        if 0 <= idx < len(self._config):
+            roi = self._config[idx]['roi']
+            return eval(roi) # tuple: (x, y, w, h)
         else:
             return None
 
