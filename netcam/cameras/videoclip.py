@@ -8,9 +8,9 @@ import collections
 from datetime import datetime
 from enum import Enum
 
-LEADIN = 10 # frames before first motion detected
-LEADOUT = 10 # frames after last motion detected
-LEADDELTA = 3 # DELTA: must be max. LEADIN or LEADOUT
+BUFFER = 10 # must be larger than PREFIX or POSTFIX
+PREFIX = 4  # frames before first motion detected
+POSTFIX = 4 # frames after last motion detected
 
 class Status(Enum):
     BEGIN = 0
@@ -29,7 +29,7 @@ class VideoClip(threading.Thread):
         self.idx = idx # camera number 0, 1, 2 etc.
         self.camera = cam # frame buffer mpeg
         self.motion = mtn # motion detector
-        self.fifo = collections.deque([], maxlen=LEADIN) # FIFO queue with [15] frames
+        self.fifo = collections.deque([], maxlen=BUFFER) # FIFO queue with [15] frames
         self.filename = 'clip-' # current filename (clip.YYYY-mm-dd.HHMMSS.avi)
         self.keep_running = True
         self.frame_counter = -1 # current frame counter (index number)
@@ -82,7 +82,7 @@ class VideoClip(threading.Thread):
             if motion_detected:
                 self._rcount += 1 # increment counter
                 self._pixelareas.append(pixelarea)
-                if self._rcount >= LEADIN-LEADDELTA:
+                if self._rcount >= BUFFER-PREFIX:
                     if self._open_file(frame):
                         # successfully opened .avi file
                         self._write_to_file(frame) # write first frame to file
@@ -109,7 +109,7 @@ class VideoClip(threading.Thread):
                 self._rstate = Status.RECORDING.value  # change state
             else:
                 self._rcount += 1  # increment counter
-                if self._rcount >= LEADOUT-LEADDELTA:
+                if self._rcount >= BUFFER+POSTFIX:
                     self._close_file()
                     self._rstate = Status.WAITING.value  # change state
 
@@ -124,7 +124,7 @@ class VideoClip(threading.Thread):
         """ calculate quality of frames missed """
         delta = frame_counter - self.previous_counter
         self.previous_counter = frame_counter
-        if delta < LEADOUT:
+        if delta < BUFFER:
             avg = (self.delta_average + delta) / 2
         else:
             avg = delta
@@ -149,7 +149,7 @@ class VideoClip(threading.Thread):
 
             # get right side frame from FIFO buffer and write to file conditionally
             self._record(motion_detected, pixelarea, self.fifo[-1])
-            # self._record(motion_detected, pixels, frame) # [debug] w.o. green motion objects (boxes)
+            # self._record(motion_detected, pixelarea, frame) # [debug] w.o. green motion objects (boxes)
             pass
 
         logging.debug('*** Quality benchmark: '+str(self.delta_average)+' (should be 1.00).')
