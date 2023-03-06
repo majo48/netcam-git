@@ -29,6 +29,7 @@ def _get_camera_info():
 
 def ipc_server(syncevent):
     """ inter process communication thread """
+    logging.info('>>> Started IPC Server.')
     terminate_origin = 'n/a'
     address = ('localhost', cnfg.get_ipc_port(recorder_index))  # AF_INET - TCP socket
     listener = Listener(address, authkey=cnfg.get_ipc_authkey())
@@ -94,11 +95,12 @@ def setup_threads(sync, cnfg, idx):
     clp.start()
     thrds.append(clp)
 
-    # ipc thread (server, listens to terminate! and information? commands)
-    ipct = Thread(target=ipc_server(sync)) # instantiate ipc server
+    # ipc thread (server, listens for terminate! and information? commands)
+    ipct = Thread(target=ipc_server, args=[sync]) # instantiate ipc server
     ipct.daemon = True
     ipct.start()
     thrds.append(ipct)
+    #
     return thrds
 
 
