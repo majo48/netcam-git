@@ -79,7 +79,8 @@ class Camera(threading.Thread):
                     else:
                         self.skipped = 0 # reset skip counter
                         self.frame.set_frame(frm) # pass frame to a thread safe container
-                        self.sync_event.set() # consumer threads: '1' motion detector, '0, 1, many' web clients
+                        self.sync_event.set() # unblock waiting consumer threads
+                        self.sync_event.clear() # block subsequent waits
 
                 cv2.destroyAllWindows()
                 stream.release()

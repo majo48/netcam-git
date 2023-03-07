@@ -70,7 +70,7 @@ class VideoClip(threading.Thread):
         check the quality of the recording in terms of frames missed
         - tm = missed frames
         - tot = last frame counter - first frame counter
-        - quality = (tot-tm)/tot in percent, e.g. 99% @ 4 fps
+        - quality = (tot-tm)/tot in percent, e.g. 99% @ 4 fps (nominal)
         """
         size = len(self._frame_counters)
         if size >0:
@@ -147,7 +147,7 @@ class VideoClip(threading.Thread):
         connect to camera through the frame buffer, detect motion and make video clips
         stored in the local filesystem and remote cloud backup
         """
-        logging.info(">>> Started video clip maker in " + threading.currentThread().getName())
+        logging.info(">>> Started video clip recorder in " + threading.currentThread().getName())
         while self.keep_running:
             # get video frame from camara buffer
             frame, frame_counter = self.camera.get_frame_clone() # thread safe buffer (blocking)
@@ -166,7 +166,7 @@ class VideoClip(threading.Thread):
         if self._rstate == Status.RECORDING.value or self._rstate == Status.STOPPING.value:
             self._close_file(0.0)
         self._rstate = Status.END.value
-        logging.info("<<< Stopped video clip maker in " + threading.currentThread().getName())
+        logging.info("<<< Stopped video clip recorder in " + threading.currentThread().getName())
         pass # end run
 
     def terminate_thread(self):
