@@ -59,12 +59,6 @@ class Frame:
             count = self.frame_count
             return cln, count
 
-    def get_picture(self, width):
-        """ get the jpeg representation of the current frame """
-        with self.semaf:
-            pic = imutils.resize(self.frame, width)
-            return pic
-
 
 if __name__ == '__main__':
     print(
