@@ -57,6 +57,7 @@ class Camera(threading.Thread):
         while self.keep_running:
             if not self._ping_camera(self.ipaddr):
                 # cannot connect to camera, ping failed
+                logging.warning(">>> Start video stream, cannot connect to camera "+str(self.idx)+" ("+self.ipaddr+")")
                 self.set_connection_problem()
                 time.sleep(1)
             else:

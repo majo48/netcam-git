@@ -18,7 +18,7 @@ import argparse
 from multiprocessing.connection import Listener
 
 def _get_camera_info():
-    """ get camera infos for server """
+    """ get camera infos for ipc server """
     cam = thrds[0] # camera always first thread
     info = {"cam_idx": recorder_index,
             "cam_fps": cam.get_fps(),
@@ -27,9 +27,8 @@ def _get_camera_info():
             "cnnprbl": cam.has_connection_problem()}
     return info
 
-def ipc_server(syncevent):
-    """ inter process communication thread """
-    logging.info('>>> Started IPC Server.')
+def run_ipc_server():
+    """ inter process communication """
     terminate_origin = 'n/a'
     address = ('localhost', cnfg.get_ipc_port(recorder_index))  # AF_INET - TCP socket
     listener = Listener(address, authkey=cnfg.get_ipc_authkey())
@@ -58,7 +57,6 @@ def ipc_server(syncevent):
         # terminate IPC
         logging.debug('<<<< IPC connection closed (terminate command received from '+terminate_origin+').')
         listener.close()
-        syncevent.set() # kill threads
 
 def parse_cli():
     """ parse the commandline: python3 netcam-recorder.py idx """
@@ -73,7 +71,7 @@ def parse_cli():
         raise ValueError('recorder_index out of bounds: '+str(ridx))
     return ridx
 
-def setup_threads(sync, cnfg, idx):
+def setup_threads(cnfg, idx):
     """ setup all threads needed for this app """
     thrds = []
     frm = frame.Frame(None)
@@ -94,12 +92,6 @@ def setup_threads(sync, cnfg, idx):
     clp.daemon = True
     clp.start()
     thrds.append(clp)
-
-    # ipc thread (server, listens for terminate! and information? commands)
-    ipct = Thread(target=ipc_server, args=[sync]) # instantiate ipc server
-    ipct.daemon = True
-    ipct.start()
-    thrds.append(ipct)
     #
     return thrds
 
@@ -109,26 +101,21 @@ if __name__ == "__main__":
     cnfg = config.Config() # get common configuration information
     cnfg.set_logging() # setup logging configuration
 
-    # define sync variable
-    sync = Event()
-
     # parse commandline -----
     recorder_index = parse_cli()
     logging.info(">>> Start recorder application no. "+str(recorder_index))
 
-    # build all threads: camera, videoclip and ipc -----
-    thrds = setup_threads(sync, cnfg, recorder_index)
+    # build all threads: camera and videoclip -----
+    thrds = setup_threads(cnfg, recorder_index)
 
-    # stop (wait) -----
-    sync.wait(timeout=None) # wait for the event to be sync.set()
+    # run ipc server (in main thread) -----
+    run_ipc_server()
 
-    # kill threads
+    # kill threads -----
     for thrd in thrds:
-        attr = getattr(thrd, "terminate_thread", None)
-        if callable(attr):
-            thrd.terminate_thread()
+        thrd.terminate_thread()
         thrd.join()
 
-    # finished log message -----
-    logging.info("<<< Stopped recorder application no. " + str())
+    # finished, log message -----
+    logging.info("<<< Stopped recorder application no. " + str(recorder_index))
     pass
