@@ -29,18 +29,15 @@ class VideoClip(threading.Thread):
         self.idx = idx # camera number 0, 1, 2 etc.
         self.camera = cam # frame buffer mpeg
         self.motion = mtn # motion detector
-        self.fifo = collections.deque([], maxlen=BUFFER) # FIFO queue with [15] frames
+        self.fifo = collections.deque([], maxlen=BUFFER) # FIFO queue with [10] frames
         self.filename = 'clip-' # current filename (clip.YYYY-mm-dd.HHMMSS.avi)
         self.keep_running = True
-        self.frame_counter = -1 # current frame counter (index number)
-        self.previous_counter = 0 # previous frame counter (index number)
-        self.delta_average = 0 # frames missed: average(current-previous)
         self.nfps = nfps # nominal frames per second
-        self.fps = nfps # current frames per second
         self.vout = None # VideoWriter object
         self._rstate = Status.BEGIN.value # enumeration
         self._rcount = 0
-        self._pixelareas = []
+        self._pixel_areas = []
+        self._frame_counters = []
 
     def _open_file(self, frame):
         """ open file for writing, order of height, width is critical """
@@ -59,16 +56,36 @@ class VideoClip(threading.Thread):
             self.vout.write(frame)
         pass
 
-    def _close_file(self):
+    def _close_file(self, qpct):
         """ close the open file """
-        logging.debug('<<< close video file '+self.filename)
+        if qpct > 0.0:
+            logging.debug('<<< close video file '+self.filename+', QA: '+str(qpct)+'%.')
         if self.vout is not None:
             self.vout.release()
             self.vout = None
         pass
 
-    def _record(self, motion_detected, pixelarea, frame):
+    def _check_quality(self):
+        """
+        check the quality of the recording in terms of frames missed
+        - tm = missed frames
+        - tot = last frame counter - first frame counter
+        - quality = (tot-tm)/tot in percent, e.g. 99% @ 4 fps
+        """
+        size = len(self._frame_counters)
+        if size >0:
+            first = self._frame_counters[0]
+            if first >0:
+                last = self._frame_counters[-1]
+                tot = last-first
+                tm = tot -size +1
+                qpct = (tot-tm)/tot*100
+                return qpct
+
+    def _record(self, motion_detected, pixel_area, fifo):
         """ state machine for recording videoclips """
+        frame = fifo[0]
+        frame_counter = fifo[1]
         if self._rstate == Status.BEGIN.value:
             self._rstate = Status.WAITING.value
 
@@ -76,19 +93,21 @@ class VideoClip(threading.Thread):
             if motion_detected:
                 self._rstate = Status.STARTING.value
                 self._rcount = 1 # set counter
-                self._pixelareas.append(pixelarea)
+                self._pixel_areas.append(pixel_area)
 
         elif self._rstate == Status.STARTING.value:
             if motion_detected:
                 self._rcount += 1 # increment counter
-                self._pixelareas.append(pixelarea)
+                self._pixel_areas.append(pixel_area)
                 if self._rcount >= BUFFER-PREFIX:
+                    self._frame_counters = [] # make empty list
                     if self._open_file(frame):
                         # successfully opened .avi file
+                        self._frame_counters.append(frame_counter) # add frame counter to list
                         self._write_to_file(frame) # write first frame to file
                         self._rstate = Status.RECORDING.value
-                        # logging.debug('??? Pixels before opening file: '+str(self._pixelareas)) # [debug]
-                        self._pixelareas = []
+                        # logging.debug('??? Pixels before opening file: '+str(self._pixel_areas)) # [debug]
+                        self._pixel_areas = []
                     else:
                         # failed to open file
                         logging.critical("Failed to open file: "+self.filename)
@@ -98,37 +117,30 @@ class VideoClip(threading.Thread):
                 self._rstate = Status.WAITING.value # change state
 
         elif self._rstate == Status.RECORDING.value:
-            self._write_to_file(frame)  # write next frame to file
+            self._frame_counters.append(frame_counter) # add frame counter to list
+            self._write_to_file(frame) # write next frame to file
             if not motion_detected:
                 self._rstate = Status.STOPPING.value # change state
                 self._rcount = 1 # set counter, first missing motion detected
 
         elif self._rstate == Status.STOPPING.value:
+            self._frame_counters.append(frame_counter) # add frame counter to list
             self._write_to_file(frame)  # write next frame to file
             if motion_detected:
                 self._rstate = Status.RECORDING.value  # change state
             else:
                 self._rcount += 1  # increment counter
                 if self._rcount >= BUFFER+POSTFIX:
-                    self._close_file()
+                    qpct = self._check_quality()
+                    self._close_file(qpct)
                     self._rstate = Status.WAITING.value  # change state
 
         elif self._rstate == Status.END.value:
-            self._close_file()
+            self._close_file(0.0)
         else:
             logging.critical("Illegal recording state encountered: "+str(self._rstate))
             self._rstate = Status.WAITING.value # try again
         pass
-
-    def _quality_test(self, frame_counter):
-        """ calculate quality of frames missed """
-        delta = frame_counter - self.previous_counter
-        self.previous_counter = frame_counter
-        if delta < BUFFER:
-            avg = (self.delta_average + delta) / 2
-        else:
-            avg = delta
-        return avg
 
     def run(self):
         """
@@ -138,23 +150,21 @@ class VideoClip(threading.Thread):
         logging.info(">>> Started video clip maker in " + threading.currentThread().getName())
         while self.keep_running:
             # get video frame from camara buffer
-            frame, self.frame_counter = self.camera.get_frame_clone() # thread safe buffer (blocking)
-            self.delta_average = self._quality_test(self.frame_counter) # quality benchmark
+            frame, frame_counter = self.camera.get_frame_clone() # thread safe buffer (blocking)
 
             # detect motions
-            motion_detected, pixelarea, decorated_frame = self.motion.parse_frame(frame)
+            motion_detected, pixel_area, decorated_frame = self.motion.parse_frame(frame)
 
             # add frame to left side of bounded FIFO buffer
-            self.fifo.appendleft(decorated_frame)
+            self.fifo.appendleft((decorated_frame, frame_counter))
 
             # get right side frame from FIFO buffer and write to file conditionally
-            self._record(motion_detected, pixelarea, self.fifo[-1])
-            # self._record(motion_detected, pixelarea, frame) # [debug] w.o. green motion objects (boxes)
+            self._record(motion_detected, pixel_area, self.fifo[-1])
+            # self._record(motion_detected, pixel_area, frame) # [debug] w.o. green motion objects (boxes)
             pass
 
-        logging.debug('*** Quality benchmark: '+str(self.delta_average)+' (should be 1.00).')
         if self._rstate == Status.RECORDING.value or self._rstate == Status.STOPPING.value:
-            self._close_file()
+            self._close_file(0.0)
         self._rstate = Status.END.value
         logging.info("<<< Stopped video clip maker in " + threading.currentThread().getName())
         pass # end run
