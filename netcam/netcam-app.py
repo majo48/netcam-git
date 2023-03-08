@@ -235,8 +235,12 @@ def get_thread_position(thread):
     """
     frame = sys._current_frames().get(thread.ident, None)
     if frame:
-        dict = { "threadname": thread.name, "daemon": str(thread.daemon), "filename": frame.f_code.co_filename,
-                 "codesection": frame.f_code.co_name, "codeline": str(frame.f_lineno) }
+        dict = {
+            "threadname": thread.name,
+            "daemon": str(thread.daemon),
+            "filename": frame.f_code.co_filename,
+            "codesection": frame.f_code.co_name,
+            "codeline": str(frame.f_lineno) }
         strng = ''
         for key, val in dict.items():
             strng += key + ": " + val + ", "
