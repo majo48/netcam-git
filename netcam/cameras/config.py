@@ -8,7 +8,6 @@ import os
 from dotenv import load_dotenv
 import platform
 import json
-import socket
 
 
 class Config:
@@ -20,8 +19,8 @@ class Config:
     - Hardware information will define the DEBUG_MODE: True or False
     - Other information can be defined as constants in this config.py file
     """
-    DEVELOPMENT_LOGFILE_NAME = 'netcam.log'
-    PRODUCTION_LOGFILE_NAME = '/var/log/netcam.log'
+    DEVELOPMENT_LOGFILE_NAME = 'netcam.log' # [default]
+    PRODUCTION_LOGFILE_NAME = '/var/log/netcam.log' # [default]
 
     def __init__(self):
         """ initialize an instance of the class """
@@ -47,25 +46,22 @@ class Config:
             if "roi" not in self._config[idx]: logging.error("Missing 'roi' in .ENV FLASK_CAM" + str(idx))
         self._max_camera_index = len(self._config)-1
 
-        # set tcp ports for ipc clients (cameras) and flask app
+        # set predefined tcp ports for each ipc server (cameras) and flask ipc client
+        self._ipc_port_flask = int(os.getenv('FLASK_IPC_PORT'))
+        prt = int(os.getenv('FLASK_IPC_CAMS'))
         self._ipc_ports = []
         for idx in range(len(self._config)):
-            port = self._get_free_port(idx)
-            self._ipc_ports.append(port)
-        self._ipc_port_flask = self._get_free_port(idx+1)
+            self._ipc_ports.append(prt)
+            prt += 1
+
+        # set common IPC secret
         s = os.getenv('FLASK_IPC_SECRET')
-        self._ipc_authkey = s.encode('ascii')
+        self._ipc_authkey = s.encode('ascii') # bytes
 
         # set debug_mode info
         mynode = platform.uname().node
         self._debug_mode = (mynode == 'macbook.local' or mynode == 'nvr')
         pass
-
-    def _get_free_port(self, idx):
-        """ get next free port from the operating system for ipc client no. idx """
-        sock = socket.socket()
-        sock.bind(('', 0))
-        return sock.getsockname()[1]
 
     def get_ipc_port(self, idx):
         """ get the ipc port reserved for camera idx """
