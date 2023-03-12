@@ -14,6 +14,7 @@ from cameras import camera, frame
 import logging
 import argparse
 from multiprocessing.connection import Listener
+import time
 
 def _get_camera_info():
     """ get camera infos for ipc server """
@@ -30,31 +31,38 @@ def run_ipc_server():
     terminate_origin = 'n/a'
     address = ('localhost', cnfg.get_ipc_port(recorder_index))  # AF_INET - TCP socket
     listener = Listener(address, authkey=cnfg.get_ipc_authkey())
-    try:
-        conn = listener.accept()
-        logging.debug('>>>> IPC connection accepted from ', listener.last_accepted)
-        while True:
-            msg = conn.recv()
-            # do something with msg
-            if msg == 'terminate!':
-                conn.send('OK')
-                terminate_origin = 'ipc'
-                # close connection and kill all threads in this app
-                conn.close()
-                break
-            elif msg == 'information?':
-                # provide camera information for the Flask app
-                conn.send(_get_camera_info()) # send to Flask application
-            else:
-                logging.error('IPC received illegal verb: '+msg)
-                conn.send('Unknown verb: '+msg) # send to Flask application
-            pass
-    except KeyboardInterrupt:
-        terminate_origin = 'keyboard'
-    finally:
-        # terminate IPC
-        logging.debug('<<<< IPC connection closed (terminate command received from '+terminate_origin+').')
-        listener.close()
+    while True:
+        try:
+            conn = listener.accept()
+            logging.debug('>>>> IPC connection accepted from ', listener.last_accepted)
+            while True:
+                msg = conn.recv()
+                # do something with msg
+                if msg == 'terminate!':
+                    conn.send('OK')
+                    terminate_origin = 'ipc'
+                    # close connection and kill all threads in this app
+                    conn.close()
+                    break
+                elif msg == 'information?':
+                    # provide camera information for the Flask app
+                    conn.send(_get_camera_info()) # send to Flask application
+                else:
+                    logging.error('IPC received illegal verb: '+msg)
+                    conn.send('Unknown verb: '+msg) # send to Flask application
+                pass
+
+        except EOFError:
+            # client closed connection
+            time.sleep(0.1) # short delay for freeing resources
+            continue # try again (while loop)
+
+        except KeyboardInterrupt:
+            terminate_origin = 'keyboard'
+            logging.debug('<<<< IPC connection closed (terminate command received from '+terminate_origin+').')
+            listener.close()
+            break
+    pass # end while
 
 def parse_cli():
     """ parse the commandline: python3 netcam-recorder.py idx """
