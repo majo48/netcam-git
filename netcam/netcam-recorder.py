@@ -27,7 +27,11 @@ def _get_camera_info():
     return info
 
 def run_ipc_server():
-    """ inter process communication """
+    """
+    inter process communication:
+        client: open connection, send command, receive answer, close connection
+        server: open connection, (EOF) wait for cmd, send answer, repeat EOF ...
+    """
     terminate_origin = 'n/a'
     address = ('localhost', cnfg.get_ipc_port(recorder_index))  # AF_INET - TCP socket
     listener = Listener(address, authkey=cnfg.get_ipc_authkey())
