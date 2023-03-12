@@ -17,15 +17,13 @@ from flask import Response
 from flask import session
 from flask import request
 from cameras import config
-from cameras import videoclip
-from cameras import motion
-from cameras import camera, frame
 from threading import current_thread
 from multiprocessing.connection import Client
 import cv2
 import logging
 import sys
 import uuid
+import subprocess
 
 app = Flask(__name__)
 
@@ -96,12 +94,16 @@ def generate_frames(userid, idx, concurrent):
     rtsp_url = cnfg.get_rtsp_url(int(idx), stream='sub')  # 640 x 480 pixel substream
     stream = cv2.VideoCapture(rtsp_url)
     while True:
-        success, frame = stream.read() # read one frame 640 x 480
-        if success and frame is not None:
-            retval, buffer = cv2.imencode('.jpg', frame)
-            # stream to template and user's browser
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+        try:
+            success, frame = stream.read() # read one frame 640 x 480
+            if success and frame is not None:
+                retval, buffer = cv2.imencode('.jpg', frame)
+                # stream to template and user's browser
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+        except cv2.error:
+            logging.error("Cannot connect to camera "+idx)
+            break
     pass # managed by Flask
 
 # -----------------------------------------------------------
@@ -249,14 +251,18 @@ def get_thread_position(thread):
 def get_camera_info(idx):
     """ get information from ipc server (camera) """
     address = ('localhost', cnfg.get_ipc_port(idx))
-    with Client(address, authkey=cnfg.get_ipc_authkey()) as conn:
-        conn.send('information?') # information request
-        info = conn.recv() # wait for information response
-        if type(info) is dict:
-            return info
-        else:
-            logging.error('IPC response error: '+str(info))
-            return {} # empty container
+    try:
+        with Client(address, authkey=cnfg.get_ipc_authkey()) as conn:
+            conn.send('information?') # information request
+            info = conn.recv() # wait for information response
+            if type(info) is dict:
+                return info
+            else:
+                logging.error('IPC response error: '+str(info))
+                return {"cnnprbl": True}
+    except Exception as exc:
+        logging.error("Caught exception socket.error : %s" % exc)
+        return {"cnnprbl": True}
 
 # -----------------------------------------------------------
 @app.route("/logs")
@@ -295,12 +301,42 @@ def get_log_items(index):
 
 # ===========================================================
 
+def get_process_infos(key):
+    """ get name + index of each netcam-recorder.py application running as a process """
+    subp = subprocess.Popen(["ps -ax | grep "+key], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    subc = subp.communicate() # get stdout and stderr
+    stdout = subc[0].decode("utf-8") # stdout to string
+    idxs = [] # return value
+    for line in stdout.splitlines():
+        chnks = line.split()
+        idx = chnks[-1] # camera index
+        cmd = chnks[-2] # command with scriptname
+        if idx.isnumeric() and key in cmd:
+            idxs.append(int(idx))
+    return idxs
+
 def setup_long_running_processes(cnfg):
     """ setup long-running processes (netcam-recorder.py) """
     ips = cnfg.get_ip_address_list()
+    pexe = "/Users/mart/Projects/netcam-git/venv/bin/python3.9"  # [default] macbook dev environment
+    papp = "netcam-recorder.py" # [default] subprocess name
+    keys = get_process_infos(papp) # indexes of running netcan-recorder processes
     for idx, ip in enumerate(ips):
-        pass
-        # todo initialize recorder processes here
+        if idx not in keys:
+            try:
+                # start python netcam-recorder.py script
+                p = subprocess.Popen(
+                    [pexe, papp, str(idx)],
+                    stdin=subprocess.DEVNULL,
+                    stdout=open('netcam.log', 'w'),
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                    shell=False)
+                logging.info("Started new subprocess "+papp+" "+str(idx))
+            except subprocess.CalledProcessError as e:
+                logging.error("Cannot start new subprocess "+papp+" "+str(idx))
+        else:
+            logging.info("Continue using subprocess "+papp+" "+str(idx))
     pass
 
 def setup_logging():

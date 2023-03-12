@@ -7,8 +7,6 @@
 #     'terminate!'   request for termination of the recording process
 # and logging events to disk files (.log and .avi).
 
-from threading import Thread
-from threading import Event
 from cameras import config
 from cameras import videoclip
 from cameras import motion
