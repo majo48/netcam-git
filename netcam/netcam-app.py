@@ -261,7 +261,7 @@ def get_camera_info(idx):
                 logging.error('IPC response error: '+str(info))
                 return {"cnnprbl": True}
     except Exception as exc:
-        logging.error("Caught exception socket.error : %s" % exc)
+        # Connection refused [Errno 61]
         return {"cnnprbl": True}
 
 # -----------------------------------------------------------
