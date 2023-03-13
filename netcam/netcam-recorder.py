@@ -38,18 +38,18 @@ def run_ipc_server():
     while True:
         try:
             conn = listener.accept()
-            logging.debug('>>>> IPC connection accepted from ', listener.last_accepted)
             while True:
                 msg = conn.recv()
                 # do something with msg
                 if msg == 'terminate!':
+                    logging.debug('**** IPC connection TERMINATE command.')
                     conn.send('OK')
                     terminate_origin = 'ipc'
                     # close connection and kill all threads in this app
                     conn.close()
                     break
                 elif msg == 'information?':
-                    # provide camera information for the Flask app
+                    logging.debug('**** IPC connection PROVIDE INFORMATION command.')
                     conn.send(_get_camera_info()) # send to Flask application
                 else:
                     logging.error('IPC received illegal verb: '+msg)
@@ -63,7 +63,7 @@ def run_ipc_server():
 
         except KeyboardInterrupt:
             terminate_origin = 'keyboard'
-            logging.debug('<<<< IPC connection closed (terminate command received from '+terminate_origin+').')
+            logging.debug('<<<< IPC connection closed (TERMINATE command from '+terminate_origin+').')
             listener.close()
             break
     pass # end while
