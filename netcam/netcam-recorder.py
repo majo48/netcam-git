@@ -15,6 +15,7 @@ import logging
 import argparse
 from multiprocessing.connection import Listener
 import time
+import sys
 
 def _get_camera_info():
     """ get camera infos for ipc server """
@@ -128,4 +129,4 @@ if __name__ == "__main__":
 
     # finished, log message -----
     logging.info("<<< Stopped recorder application no. " + str(recorder_index))
-    pass
+    sys.exit() # stop interpreter process

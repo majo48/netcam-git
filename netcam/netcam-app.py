@@ -400,3 +400,4 @@ if __name__ == "__main__":
 
     # finished log message
     logging.info("<<< Stop Flask application '"+app.name+"'")
+    sys.exit()

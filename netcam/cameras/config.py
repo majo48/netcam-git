@@ -19,7 +19,7 @@ class Config:
     - Hardware information will define the DEBUG_MODE: True or False
     - Other information can be defined as constants in this config.py file
     """
-    DEVELOPMENT_LOGFILE_NAME = '?/netcam.log' # [default]
+    DEVELOPMENT_LOGFILE_NAME = '?/logs/netcam.log' # [default]
     PRODUCTION_LOGFILE_NAME = '/var/log/netcam.log' # [default]
 
     def __init__(self):
@@ -160,7 +160,7 @@ class Config:
         setup logging for development and production environments
         and for netcam-app.py and netcam-recorder.py
         """
-        myfmt = '%(asctime)s | %(levelname)s | %(process)d | %(threadName)s | %(module)s | %(message)s'
+        myfmt = '%(asctime)s | %(levelname)s | %(name)s | %(message)s'
         # setup logging formats (depends on environments)
         if self.is_debug_mode():
             # basic configuration for development environment
