@@ -59,7 +59,7 @@ class VideoClip(threading.Thread):
     def _close_file(self, qpct):
         """ close the open file """
         if qpct > 0.0:
-            logging.debug('<<< close video file '+self.filename+', QA: '+str(qpct)+'%.')
+            logging.debug('<<< close video file '+self.filename+', QA: '+str(round(qpct,1))+'%.')
         if self.vout is not None:
             self.vout.release()
             self.vout = None
@@ -79,8 +79,7 @@ class VideoClip(threading.Thread):
                 last = self._frame_counters[-1]
                 tot = last-first
                 tm = tot -size +1
-                qpct = (tot-tm)/tot*100
-                return qpct
+                return (tot-tm)/tot*100
 
     def _record(self, motion_detected, pixel_area, fifo):
         """ state machine for recording videoclips """
