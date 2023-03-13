@@ -20,7 +20,6 @@ from cameras import config
 from threading import current_thread
 from multiprocessing.connection import Client
 import cv2
-import logging
 import sys
 import uuid
 import subprocess
@@ -102,7 +101,7 @@ def generate_frames(userid, idx, concurrent):
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
         except cv2.error:
-            logging.error("Cannot connect to camera "+idx)
+            app.logger.error("Cannot connect to camera "+idx)
             break
     pass # managed by Flask
 
@@ -258,7 +257,7 @@ def get_camera_info(idx):
             if type(info) is dict:
                 return info
             else:
-                logging.error('IPC response error: '+str(info))
+                app.logger.error('IPC response error: '+str(info))
                 return {"cnnprbl": True}
     except Exception as exc:
         # Connection refused [Errno 61]
@@ -332,50 +331,20 @@ def setup_long_running_processes(cnfg):
                     stderr=subprocess.STDOUT,
                     start_new_session=True,
                     shell=False)
-                logging.info("Started new subprocess "+papp+" "+str(idx))
+                app.logger.info("Started new subprocess "+papp+" "+str(idx))
             except subprocess.CalledProcessError as e:
-                logging.error("Cannot start new subprocess "+papp+" "+str(idx))
+                app.logger.error("Cannot start new subprocess "+papp+" "+str(idx))
         else:
-            logging.info("Continue using subprocess "+papp+" "+str(idx))
+            app.logger.info("Continue using subprocess "+papp+" "+str(idx))
     pass
-
-def setup_logging():
-    """ setup logging for development and production environments """
-    # get confidential information
-    cnfg = config.Config()
-    # setup logging formats (depends on environments)
-    myfmt = '%(asctime)s | %(levelname)s | %(threadName)s | %(module)s | %(message)s'
-    if cnfg.is_debug_mode():
-        # basic configuration for development environment
-        logging.basicConfig(
-            format=myfmt,
-            filename=cnfg.get_log_filename(),
-            filemode='w',
-            encoding='utf-8',
-            level='DEBUG')
-        # also send logs to the console
-        lggr = logging.getLogger()
-        lggr.setLevel(logging.DEBUG)
-        hndlr = logging.StreamHandler(sys.stdout)
-        hndlr.setLevel(logging.DEBUG)
-        hndlr.setFormatter(logging.Formatter(myfmt))
-        lggr.addHandler(hndlr)
-    else:
-        # basic configuration for production environment
-        logging.basicConfig(
-            format=myfmt,
-            filename=cnfg.get_log_filename(),
-            filemode='a',
-            encoding='utf-8',
-            level='INFO')
-    return cnfg
 
 
 if __name__ == "__main__":
     """ initialize the netcam app """
     # setup logging -----
-    cnfg = setup_logging()
-    logging.info(">>> Start Flask application '"+app.name+"'")
+    cnfg = config.Config()
+    cnfg.set_logging(None)
+    app.logger.info(">>> Start Flask application '"+app.name+"'")
 
     # setup session variable
     app.secret_key = cnfg.get_flask_secret()
@@ -399,5 +368,5 @@ if __name__ == "__main__":
         pass # todo kill ipc processes here
 
     # finished log message
-    logging.info("<<< Stop Flask application '"+app.name+"'")
+    app.logger.info("<<< Stop Flask application '"+app.name+"'")
     sys.exit()
