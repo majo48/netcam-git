@@ -76,10 +76,7 @@ def parse_cli():
     parser.add_argument("idx", help="Camera index (0..n).")
     args = parser.parse_args()
     cli = vars(args)
-    ridx = int(cli["idx"])
-    if not (0 <= ridx <= cnfg.get_max_camera_index()):
-        raise ValueError('recorder_index out of bounds: '+str(ridx))
-    return ridx
+    return int(cli["idx"])
 
 def setup_threads(cnfg, idx):
     """ setup all threads needed for this app """
@@ -107,12 +104,15 @@ def setup_threads(cnfg, idx):
 
 
 if __name__ == "__main__":
-    """ initialize the netcam app """
-    cnfg = config.Config() # get common configuration information
-    cnfg.set_logging() # setup logging configuration
-
+    """ initialize the netcam-recorder app """
     # parse commandline -----
     recorder_index = parse_cli()
+
+    # setup configuration infos
+    cnfg = config.Config() # get common configuration information
+    if not (0 <= recorder_index <= cnfg.get_max_camera_index()):
+        raise ValueError('recorder_index out of bounds: ' + str(recorder_index))
+    cnfg.set_logging(recorder_index) # setup logging configuration
     logging.info(">>> Start recorder application no. "+str(recorder_index))
 
     # build all threads: camera and videoclip -----

@@ -19,7 +19,7 @@ class Config:
     - Hardware information will define the DEBUG_MODE: True or False
     - Other information can be defined as constants in this config.py file
     """
-    DEVELOPMENT_LOGFILE_NAME = 'netcam.log' # [default]
+    DEVELOPMENT_LOGFILE_NAME = '?/netcam.log' # [default]
     PRODUCTION_LOGFILE_NAME = '/var/log/netcam.log' # [default]
 
     def __init__(self):
@@ -155,10 +155,10 @@ class Config:
         else:
             raise TypeError('IP address should be an integer or string.')
 
-    def set_logging(self):
+    def set_logging(self, idx):
         """
         setup logging for development and production environments
-        same for netcam-app.py and netcam-recorder.py
+        and for netcam-app.py and netcam-recorder.py
         """
         myfmt = '%(asctime)s | %(levelname)s | %(process)d | %(threadName)s | %(module)s | %(message)s'
         # setup logging formats (depends on environments)
@@ -166,7 +166,7 @@ class Config:
             # basic configuration for development environment
             logging.basicConfig(
                 format=myfmt,
-                filename=self.get_log_filename(),
+                filename=self.get_log_filename(idx),
                 filemode='w',
                 encoding='utf-8',
                 level='DEBUG')
@@ -181,7 +181,7 @@ class Config:
             # basic configuration for production environment
             logging.basicConfig(
                 format=myfmt,
-                filename=self.get_log_filename(),
+                filename=self.get_log_filename(idx),
                 filemode='a',
                 encoding='utf-8',
                 level='INFO')
@@ -195,12 +195,19 @@ class Config:
         """ get inverted DEBUG_MODE variable """
         return not self.is_debug_mode()
 
-    def get_log_filename(self):
-        """ get the current logfile (relative or absolute) """
+    def get_log_filename(self, idx=None):
+        """ get the current logfile name (relative or absolute) """
         if self.is_debug_mode():
-            return self.DEVELOPMENT_LOGFILE_NAME
+            fname = self.DEVELOPMENT_LOGFILE_NAME
+            cwd = os.getcwd() # folder name in dev environment
+            fname = fname.replace("?", cwd)
         else:
-            return self.PRODUCTION_LOGFILE_NAME
+            fname = self.PRODUCTION_LOGFILE_NAME
+        if idx is None:
+            return fname # logfile for Flask application
+        else:
+            # logfile for netcam-recorder application
+            return fname.replace(".log", str(idx)+".log")
 
     def get_flask_secret(self):
         """ get the Flask secret for the session variable """
