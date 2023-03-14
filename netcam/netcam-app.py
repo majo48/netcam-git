@@ -248,7 +248,13 @@ def get_thread_position(thread):
         return strng[:-2]
 
 def get_camera_info(idx):
-    """ get information from ipc server (camera) """
+    """
+    get information from ipc server (camera port):
+    - open connection
+    - send request
+    - receive information
+    - close connection
+    """
     address = ('localhost', cnfg.get_ipc_port(idx))
     try:
         with Client(address, authkey=cnfg.get_ipc_authkey()) as conn:
@@ -363,10 +369,6 @@ if __name__ == "__main__":
         # run in production mode
         app.run(debug=False, use_debugger=False, use_reloader=False)
 
-    # stop and kill processes -----
-    for idx in range(len(cnfg.get_ip_address_list())):
-        pass # todo kill ipc processes here
-
-    # finished log message
+    # finish app
     app.logger.info("<<< Stop Flask application '"+app.name+"'")
     sys.exit()
