@@ -7,7 +7,6 @@
 # - managed with: tbd
 # - IPC with:     tbd
 
-import threading
 from flask import Flask
 from flask import render_template
 from flask import make_response
@@ -17,6 +16,9 @@ from flask import Response
 from flask import session
 from flask import request
 from cameras import config
+from logger import tcpserver
+import logging
+import threading
 from threading import current_thread
 from multiprocessing.connection import Client
 import cv2
@@ -320,7 +322,7 @@ def get_process_infos(key):
             idxs.append(int(idx))
     return idxs
 
-def setup_long_running_processes(cnfg):
+def start_long_running_processes(cnfg):
     """ setup long-running processes (netcam-recorder.py) """
     ips = cnfg.get_ip_address_list()
     pexe = "/Users/mart/Projects/netcam-git/venv/bin/python3.9"  # [default] macbook dev environment
@@ -344,19 +346,42 @@ def setup_long_running_processes(cnfg):
             app.logger.info("Continue using subprocess "+papp+" "+str(idx))
     pass
 
+def start_threads():
+    """ setup all threads needed for this app """
+    thrds = []
+    # setup common logger thread
+    lggr = tcpserver.Tcpserver()
+    lggr.daemon = True
+    lggr.start()
+    thrds.append(lggr)
+    #
+    return thrds
+
+def kill_threads(thrds):
+    """ kill all threads running in this app """
+    for thrd in thrds:
+        thrd.terminate_thread()
+        thrd.join()
+    pass
 
 if __name__ == "__main__":
-    """ initialize the netcam app """
-    # setup logging -----
+    """ initialize the netcam Flask application """
+
+    # setup configuration and logging -----
     cnfg = config.Config()
     cnfg.set_logging(None)
     app.logger.info(">>> Start Flask application '"+app.name+"'")
+    # [debug] wz = logging.getLogger('werkzeug')
+    # [debug] wz.setLevel(logging.WARNING)
 
     # setup session variable
     app.secret_key = cnfg.get_flask_secret()
 
-    # setup all threads needed for the application -----
-    setup_long_running_processes(cnfg)
+    # start all threads needed in this application -----
+    thrds = start_threads()
+
+    # start all processes needed for the application -----
+    start_long_running_processes(cnfg)
 
     # run Flask server -----
     if cnfg.is_debug_mode():
@@ -368,6 +393,9 @@ if __name__ == "__main__":
     else:
         # run in production mode
         app.run(debug=False, use_debugger=False, use_reloader=False)
+
+    # kill threads -----
+    kill_threads(thrds)
 
     # finish app
     app.logger.info("<<< Stop Flask application '"+app.name+"'")
