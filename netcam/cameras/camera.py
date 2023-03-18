@@ -3,7 +3,6 @@
 import cv2
 import os
 import threading
-import logging
 import time
 
 # constants
@@ -13,7 +12,7 @@ WAIT_LONG = 30 # [30] seconds
 class Camera(threading.Thread):
     """ class for one physical video cameras """
 
-    def __init__(self, idx, ipaddr, rtsp_url, frm):
+    def __init__(self, idx, ipaddr, rtsp_url, frm, lggr):
         """
         initialize connection to one physical video camera
         """
@@ -24,6 +23,7 @@ class Camera(threading.Thread):
         if isinstance(ipaddr, str) and len(ipaddr) == 1:
             self.ipaddr = int(ipaddr) # this is a local webcam
         self.frame = frm # static class: netcam-git.netcam.cameras.frame.Frame
+        self.logger = lggr # logger for this camera
         self.skipped = 0 # skipped frame count
         self.sync_event = threading.Event()
         self.sync_event.clear() # not set
@@ -57,24 +57,24 @@ class Camera(threading.Thread):
         while self.keep_running:
             if not self._ping_camera(self.ipaddr):
                 # cannot connect to camera, ping failed
-                logging.warning(">>> Start video stream, cannot connect to camera "+str(self.idx)+" ("+self.ipaddr+")")
+                self.logger.warning(">>> Start video stream, cannot connect to camera "+str(self.idx)+" ("+self.ipaddr+")")
                 self.set_connection_problem()
                 time.sleep(1)
             else:
-                logging.info(">>> Started video stream in " + threading.currentThread().getName())
+                self.logger.info(">>> Started video stream in " + threading.currentThread().getName())
                 stream = cv2.VideoCapture(self.rtsp_url)
                 self.skipped = 0 # reset skip counter
                 while self.keep_running:
                     try:
                         success, frm = stream.read() # read one frame
                     except cv2.error:
-                        logging.warning('<<< Connection problem (cv2).')
+                        self.logger.warning('<<< Connection problem (cv2).')
                         break
 
                     if (success == False) or (frm is None):
                         self.skipped += 1
                         if self.has_connection_problem():
-                            logging.warning('<<< Connection problem(too many empty frames).')
+                            self.logger.warning('<<< Connection problem(too many empty frames).')
                             break
                     else:
                         self.skipped = 0 # reset skip counter
@@ -84,7 +84,7 @@ class Camera(threading.Thread):
 
                 cv2.destroyAllWindows()
                 stream.release()
-                logging.info("<<< Stopped video stream in " + threading.currentThread().getName())
+                self.logger.info("<<< Stopped video stream in " + threading.currentThread().getName())
                 if self.keep_running:
                     self._sleep(WAIT_LONG)  # delay, before trying again
 

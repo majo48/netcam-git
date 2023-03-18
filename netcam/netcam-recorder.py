@@ -5,13 +5,14 @@
 # other than ipc communication commands:
 #     'information?' request for information from the camera
 #     'terminate!'   request for termination of the recording process
-# and logging events to disk files (.log and .avi).
+#
+# and logging events sent through socket DEFAULT_TCP_LOGGING_PORT.
 
 from cameras import config
 from cameras import videoclip
 from cameras import motion
 from cameras import camera, frame
-import logging
+import logging, logging.handlers
 import argparse
 from multiprocessing.connection import Listener
 import time
@@ -27,7 +28,7 @@ def _get_camera_info():
             "cnnprbl": cam.has_connection_problem()}
     return info
 
-def run_ipc_server():
+def run_ipc_server(lggr):
     """
     inter process communication:
         client: open connection, send command, receive answer, close connection
@@ -43,17 +44,17 @@ def run_ipc_server():
                 msg = conn.recv()
                 # do something with msg
                 if msg == 'terminate!':
-                    logging.debug('**** IPC connection TERMINATE command.')
+                    lggr.debug('**** IPC connection TERMINATE command.')
                     conn.send('OK')
                     terminate_origin = 'ipc'
                     # close connection and kill all threads in this app
                     conn.close()
                     break
                 elif msg == 'information?':
-                    logging.debug('**** IPC connection PROVIDE INFORMATION command.')
+                    lggr.debug('**** IPC connection PROVIDE INFORMATION command.')
                     conn.send(_get_camera_info()) # send to Flask application
                 else:
-                    logging.error('IPC received illegal verb: '+msg)
+                    lggr.error('IPC received illegal verb: '+msg)
                     conn.send('Unknown verb: '+msg) # send to Flask application
                 pass
 
@@ -64,7 +65,7 @@ def run_ipc_server():
 
         except KeyboardInterrupt:
             terminate_origin = 'keyboard'
-            logging.debug('<<<< IPC connection closed (TERMINATE command from '+terminate_origin+').')
+            lggr.debug('<<<< IPC connection closed (TERMINATE command from '+terminate_origin+').')
             listener.close()
             break
     pass # end while
@@ -79,7 +80,17 @@ def parse_cli():
     cli = vars(args)
     return int(cli["idx"])
 
-def setup_threads(cnfg, idx):
+def setup_logger(recorder_index):
+    """setup logging, through sockets, to netcam-app """
+    rootLogger = logging.getLogger('')
+    rootLogger.setLevel(logging.DEBUG) # [default]
+    socketHandler = logging.handlers.SocketHandler(
+        'localhost', logging.handlers.DEFAULT_TCP_LOGGING_PORT)
+    rootLogger.addHandler(socketHandler)
+    myname = 'recorder.'+str(recorder_index)
+    return logging.getLogger(myname)
+
+def setup_threads(cnfg, idx, lggr):
     """ setup all threads needed for this app """
     thrds = []
     frm = frame.Frame(None)
@@ -87,7 +98,7 @@ def setup_threads(cnfg, idx):
     ip = cnfg.get_ip_address(idx)
 
     # camera thread, connected to videoclip through frm, always thrds[0]
-    cam = camera.Camera(idx, ip, url, frm)  # instantiate a camera feed
+    cam = camera.Camera(idx, ip, url, frm, lggr)  # instantiate a camera feed
     cam.daemon = True
     cam.start()
     thrds.append(cam)
@@ -96,7 +107,7 @@ def setup_threads(cnfg, idx):
     nfps = cnfg.get_nominal_fps(idx)
     roi = cnfg.get_roi(idx)
     mtn = motion.Motion(roi)
-    clp = videoclip.VideoClip(idx, nfps, cam, mtn) # instantiate video clip maker
+    clp = videoclip.VideoClip(idx, nfps, cam, mtn, lggr) # instantiate video clip maker
     clp.daemon = True
     clp.start()
     thrds.append(clp)
@@ -113,14 +124,14 @@ if __name__ == "__main__":
     cnfg = config.Config() # get common configuration information
     if not (0 <= recorder_index <= cnfg.get_max_camera_index()):
         raise ValueError('recorder_index out of bounds: ' + str(recorder_index))
-    cnfg.set_logging(recorder_index) # setup logging configuration
-    logging.info(">>> Start recorder application no. "+str(recorder_index))
+    logger = setup_logger(recorder_index)
+    logger.info(">>> Start recorder application no. "+str(recorder_index))
 
     # build all threads: camera and videoclip -----
-    thrds = setup_threads(cnfg, recorder_index)
+    thrds = setup_threads(cnfg, recorder_index, logger)
 
     # run ipc server (in main thread) -----
-    run_ipc_server()
+    run_ipc_server(logger)
 
     # kill threads -----
     for thrd in thrds:
@@ -128,5 +139,5 @@ if __name__ == "__main__":
         thrd.join()
 
     # finished, log message -----
-    logging.info("<<< Stopped recorder application no. " + str(recorder_index))
+    logger.info("<<< Stopped recorder application no. " + str(recorder_index))
     sys.exit() # stop interpreter process

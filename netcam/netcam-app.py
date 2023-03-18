@@ -369,8 +369,15 @@ if __name__ == "__main__":
 
     # setup configuration and logging -----
     cnfg = config.Config()
-    cnfg.set_logging(None)
+    cnfg.set_logging()
     app.logger.info(">>> Start Flask application '"+app.name+"'")
+    errors = cnfg.get_error_messages()
+    if len(errors) >0:
+        for msg in errors:
+            app.logger.error(msg)
+        app.logger.error('Configuration error in file .ENV, please fix.')
+        sys.exit(1)
+
     # [debug] wz = logging.getLogger('werkzeug')
     # [debug] wz.setLevel(logging.WARNING)
 

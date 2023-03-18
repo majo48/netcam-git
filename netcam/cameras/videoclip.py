@@ -3,7 +3,6 @@
 import cv2
 import os
 import threading
-import logging
 import collections
 from datetime import datetime
 from enum import Enum
@@ -23,12 +22,13 @@ class Status(Enum):
 class VideoClip(threading.Thread):
     """ class for making video clips for one physical video cameras """
 
-    def __init__(self, idx, nfps, cam, mtn):
+    def __init__(self, idx, nfps, cam, mtn, lggr):
         """ initialize the video clip maker """
         super().__init__()
         self.idx = idx # camera number 0, 1, 2 etc.
         self.camera = cam # frame buffer mpeg
         self.motion = mtn # motion detector
+        self.logger = lggr # logger for this camera
         self.fifo = collections.deque([], maxlen=BUFFER) # FIFO queue with [10] frames
         self.filename = 'clip-' # current filename (clip.YYYY-mm-dd.HHMMSS.avi)
         self.keep_running = True
@@ -43,7 +43,7 @@ class VideoClip(threading.Thread):
         """ open file for writing, order of height, width is critical """
         now = datetime.now()
         self.filename = now.strftime('videos/clip'+str(self.idx)+'.%Y-%m-%d.%H%M%S.avi')
-        logging.debug('>>> open video file '+self.filename)
+        self.logger.debug('>>> open video file '+self.filename)
         width, height = frame.shape[0], frame.shape[1]
         fourcc = cv2.VideoWriter_fourcc(*'MJPG')
         self.vout = cv2.VideoWriter()
@@ -59,7 +59,7 @@ class VideoClip(threading.Thread):
     def _close_file(self, qpct):
         """ close the open file """
         if qpct > 0.0:
-            logging.debug('<<< close video file '+self.filename+', QA: '+str(round(qpct,1))+'%.')
+            self.logger.debug('<<< close video file '+self.filename+', QA: '+str(round(qpct,1))+'%.')
         if self.vout is not None:
             self.vout.release()
             self.vout = None
@@ -105,11 +105,10 @@ class VideoClip(threading.Thread):
                         self._frame_counters.append(frame_counter) # add frame counter to list
                         self._write_to_file(frame) # write first frame to file
                         self._rstate = Status.RECORDING.value
-                        # logging.debug('??? Pixels before opening file: '+str(self._pixel_areas)) # [debug]
                         self._pixel_areas = []
                     else:
                         # failed to open file
-                        logging.critical("Failed to open file: "+self.filename)
+                        self.logger.critical("Failed to open file: "+self.filename)
                         self._rstate = Status.WAITING.value # try again
             else:
                 # no motion detected while starting, fall back immediately
@@ -137,7 +136,7 @@ class VideoClip(threading.Thread):
         elif self._rstate == Status.END.value:
             self._close_file(0.0)
         else:
-            logging.critical("Illegal recording state encountered: "+str(self._rstate))
+            self.logger.critical("Illegal recording state encountered: "+str(self._rstate))
             self._rstate = Status.WAITING.value # try again
         pass
 
@@ -146,7 +145,7 @@ class VideoClip(threading.Thread):
         connect to camera through the frame buffer, detect motion and make video clips
         stored in the local filesystem and remote cloud backup
         """
-        logging.info(">>> Started video clip recorder in " + threading.currentThread().getName())
+        self.logger.info(">>> Started video clip recorder in " + threading.currentThread().getName())
         while self.keep_running:
             # get video frame from camara buffer
             frame, frame_counter = self.camera.get_frame_clone() # thread safe buffer (blocking)
@@ -165,7 +164,7 @@ class VideoClip(threading.Thread):
         if self._rstate == Status.RECORDING.value or self._rstate == Status.STOPPING.value:
             self._close_file(0.0)
         self._rstate = Status.END.value
-        logging.info("<<< Stopped video clip recorder in " + threading.currentThread().getName())
+        self.logger.info("<<< Stopped video clip recorder in " + threading.currentThread().getName())
         pass # end run
 
     def terminate_thread(self):

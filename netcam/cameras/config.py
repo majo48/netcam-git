@@ -37,13 +37,14 @@ class Config:
                 self._config.append(jsn)
 
         # check config list for inconsistencies
+        self.msgs = [] # error messages
         for idx in range(len(self._config)):
-            if "ttl" not in self._config[idx]: logging.error("Missing 'ttl' in .ENV FLASK_CAM" + str(idx))
-            if "usr" not in self._config[idx]: logging.error("Missing 'usr' in .ENV FLASK_CAM" + str(idx))
-            if "pw" not in self._config[idx]: logging.error("Missing 'pw' in .ENV FLASK_CAM" + str(idx))
-            if "ip" not in self._config[idx]: logging.error("Missing 'ip' in .ENV FLASK_CAM" + str(idx))
-            if "fps" not in self._config[idx]: logging.error("Missing 'fps' in .ENV FLASK_CAM" + str(idx))
-            if "roi" not in self._config[idx]: logging.error("Missing 'roi' in .ENV FLASK_CAM" + str(idx))
+            if "ttl" not in self._config[idx]: self.msgs.append("Missing 'ttl' in .ENV FLASK_CAM" + str(idx))
+            if "usr" not in self._config[idx]: self.msgs.append("Missing 'usr' in .ENV FLASK_CAM" + str(idx))
+            if "pw" not in self._config[idx]: self.msgs.append("Missing 'pw' in .ENV FLASK_CAM" + str(idx))
+            if "ip" not in self._config[idx]: self.msgs.append("Missing 'ip' in .ENV FLASK_CAM" + str(idx))
+            if "fps" not in self._config[idx]: self.msgs.append("Missing 'fps' in .ENV FLASK_CAM" + str(idx))
+            if "roi" not in self._config[idx]: self.msgs.append("Missing 'roi' in .ENV FLASK_CAM" + str(idx))
         self._max_camera_index = len(self._config)-1
 
         # set predefined tcp ports for each ipc server (cameras) and flask ipc client
@@ -155,10 +156,10 @@ class Config:
         else:
             raise TypeError('IP address should be an integer or string.')
 
-    def set_logging(self, idx):
+    def set_logging(self):
         """
         setup logging for development and production environments
-        and for netcam-app.py and netcam-recorder.py
+        this is common for all netcam apps (connected through sockets)
         """
         myfmt = '%(asctime)s | %(levelname)s | %(name)s | %(message)s'
         # setup logging formats (depends on environments)
@@ -166,13 +167,13 @@ class Config:
             # basic configuration for development environment
             logging.basicConfig(
                 format=myfmt,
-                filename=self.get_log_filename(idx),
+                filename=self.get_log_filename(),
                 filemode='w',
                 encoding='utf-8',
                 level='DEBUG')
             # also send logs to the console
             lggr = logging.getLogger()
-            lggr.setLevel(logging.DEBUG)
+            lggr.setLevel(logging.DEBUG) # [default] development
             hndlr = logging.StreamHandler(sys.stdout)
             hndlr.setLevel(logging.DEBUG)
             hndlr.setFormatter(logging.Formatter(myfmt))
@@ -181,10 +182,10 @@ class Config:
             # basic configuration for production environment
             logging.basicConfig(
                 format=myfmt,
-                filename=self.get_log_filename(idx),
+                filename=self.get_log_filename(),
                 filemode='a',
                 encoding='utf-8',
-                level='INFO')
+                level='INFO') # [default] production
         pass
 
     def is_debug_mode(self):
@@ -195,7 +196,7 @@ class Config:
         """ get inverted DEBUG_MODE variable """
         return not self.is_debug_mode()
 
-    def get_log_filename(self, idx=None):
+    def get_log_filename(self):
         """ get the current logfile name (relative or absolute) """
         if self.is_debug_mode():
             fname = self.DEVELOPMENT_LOGFILE_NAME
@@ -203,16 +204,15 @@ class Config:
             fname = fname.replace("?", cwd)
         else:
             fname = self.PRODUCTION_LOGFILE_NAME
-        if idx is None:
-            return fname # logfile for Flask application
-        else:
-            # logfile for netcam-recorder application
-            return fname.replace(".log", str(idx)+".log")
+        return fname # logfile for Flask + recorder applications
 
     def get_flask_secret(self):
         """ get the Flask secret for the session variable """
         return self._flask_secret
 
+    def get_error_messages(self):
+        """ get error messages from the initialization part """
+        return self.msgs
 
 if __name__ == '__main__':
     print(
