@@ -4,14 +4,14 @@
 # At the end of the measurement, the measurements are copied to a file.
 # The assessment is done offline with e.g. excel
 
-# Reference:
+# References:
 # psutil library: https://pypi.org/project/psutil/
 # psutil documents: https://psutil.readthedocs.io/en/latest/
 
-import os
-import sys
 import psutil
 import json
+import csv
+from datetime import datetime
 
 
 def run(vals):
@@ -30,17 +30,34 @@ def run(vals):
         pass
     return vals
 
-def save(vals):
-    """ save the measurements to a file """
+def save_json(vals):
+    """ save the measurements to a json file """
+    # format data
     json_string = json.dumps(vals, indent=4)
-    with open('netcam-tool-cpu.log', 'w') as outfile:
+    # build filename
+    now = datetime.now()
+    fname = now.strftime('logs/netcam-tool-cpu-%H%M%S.log')
+    # write to file
+    with open(fname, 'w') as outfile:
         outfile.write(json_string)
+    pass
+
+def save_csv(vals):
+    """ save data to a .csv file """
+    # build filename
+    now = datetime.now()
+    fname = now.strftime('logs/netcam-tool-cpu-%H%M%S.csv')
+    # write to file
+    with open(fname, 'w') as outfile:
+        wr = csv.writer(outfile)
+        wr.writerow(vals)
     pass
 
 if __name__ == "__main__":
     """ initialize the tool application """
     values = []
     values = run(values)
-    save(values)
+    save_json(values)
+    save_csv(values)
     # finished
     exit(0)
