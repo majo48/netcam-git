@@ -22,17 +22,18 @@ class Status(Enum):
 class VideoClip(threading.Thread):
     """ class for making video clips for one physical video cameras """
 
-    def __init__(self, idx, nfps, cam, mtn, lggr):
+    def __init__(self, idx, cnfg, cam, mtn, lggr):
         """ initialize the video clip maker """
         super().__init__()
         self.idx = idx # camera number 0, 1, 2 etc.
+        self.cnfg = cnfg # configuration
         self.camera = cam # frame buffer mpeg
         self.motion = mtn # motion detector
         self.logger = lggr # logger for this camera
         self.fifo = collections.deque([], maxlen=BUFFER) # FIFO queue with [10] frames
-        self.filename = 'clip-' # current filename (clip.YYYY-mm-dd.HHMMSS.avi)
+        self.filename = '' # current filename
         self.keep_running = True
-        self.nfps = nfps # nominal frames per second
+        self.nfps = cnfg.get_nominal_fps(idx) # nominal frames per second
         self.vout = None # VideoWriter object
         self._rstate = Status.BEGIN.value # enumeration
         self._rcount = 0
@@ -41,8 +42,7 @@ class VideoClip(threading.Thread):
 
     def _open_file(self, frame):
         """ open file for writing, order of height, width is critical """
-        now = datetime.now()
-        self.filename = now.strftime('videos/clip'+str(self.idx)+'.%Y-%m-%d.%H%M%S.avi')
+        self.filename = self.cnfg.get_video_filename(self.idx)
         self.logger.debug('>>> open video file '+self.filename)
         width, height = frame.shape[0], frame.shape[1]
         fourcc = cv2.VideoWriter_fourcc(*'MJPG')
