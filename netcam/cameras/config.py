@@ -20,13 +20,10 @@ class Config:
     - Hardware information will define the DEBUG_MODE: True or False
     - Other information can be defined as constants in this config.py file
     """
-    DEVELOPMENT_VIDEO_PATH = '/Users/mart/projects/netcam-git/netcam/videos/' # [default]
-    PRODUCTION_VIDEO_PATH = '/var/videos/' # [default]
-    VIDEO_FILE_NAME = 'recorder.?1.time.?2.avi' # [default]
-
-    DEVELOPMENT_LOG_PATH = '/Users/mart/projects/netcam-git/netcam/logs/' # [default]
-    PRODUCTION_LOG_PATH = '/var/logs/' # [default]
-    LOG_FILE_NAME = 'netcam.?.log' # '[default]
+    DEVELOPMENT_PATH = '/Users/mart/projects/netcam-git/netcam/' # [default]
+    PRODUCTION_PATH = '/var/netcam/' # [default]
+    LOG_FILE_NAME = 'logs/netcam.?.log' # '[default]
+    VIDEO_FILE_NAME = 'videos/recorder.?1.time.?2.avi' # [default]
 
     def __init__(self):
         """ initialize an instance of the class """
@@ -202,23 +199,23 @@ class Config:
         """ get inverted DEBUG_MODE variable """
         return not self.is_debug_mode()
 
+    def get_standard_path(self):
+        """ get the path for the 'netcam' folder for wring to netcam/logs and netcam/videos """
+        if self.is_debug_mode():
+            return self.DEVELOPMENT_PATH
+        else:
+            return self.PRODUCTION_PATH
+
     def get_log_filename(self):
         """ get the current fully qualified log filename """
-        if self.is_debug_mode():
-            fname = self.DEVELOPMENT_LOG_PATH + self.LOG_FILE_NAME
-        else:
-            fname = self.PRODUCTION_LOG_PATH + self.LOG_FILE_NAME
-
+        fname = self.get_standard_path() + self.LOG_FILE_NAME
         ymd = datetime.now().strftime('%Y.%m.%d')
         fname = fname.replace("?", ymd)
         return fname # logfile for Flask + recorder applications
 
     def get_video_filename(self, idx):
         """ get the fully qualified video filename """
-        if self.is_debug_mode():
-            fname = self.DEVELOPMENT_VIDEO_PATH + self.VIDEO_FILE_NAME
-        else:
-            fname = self.PRODUCTION_VIDEO_PATH + self.VIDEO_FILE_NAME
+        fname = self.get_standard_path() + self.VIDEO_FILE_NAME
         fname = fname.replace("?1", str(idx))
         dt = datetime.now().strftime('%Y.%m.%d.%H.%M.%S')
         fname = fname.replace("?2", dt)
