@@ -9,7 +9,8 @@ from dotenv import load_dotenv
 import platform
 import json
 from datetime import datetime
-
+import subprocess
+import shutil
 
 class Config:
     """
@@ -20,6 +21,7 @@ class Config:
     - Hardware information will define the DEBUG_MODE: True or False
     - Other information can be defined as constants in this config.py file
     """
+    DRIVE_LABEL = 'WD_Elements'  # [default] case-sensitive
     DEVELOPMENT_PATH = '/Users/mart/projects/netcam-git/netcam/' # [default]
     PRODUCTION_PATH = '/var/netcam/' # [default]
     LOG_FILE_NAME = 'logs/netcam.?.log' # '[default]
@@ -65,6 +67,13 @@ class Config:
         # set debug_mode info
         mynode = platform.uname().node
         self._debug_mode = (mynode == 'macbook.local' or mynode == 'nvr')
+
+        # check for external disk (already mounted by admin!)
+        self._mount_point = self.check_external_disk(self.DRIVE_LABEL)
+        if self._mount_point is not None:
+            contents = self.read_external_disk(self._mount_point)
+            if 'netcam' not in contents:
+                self.make_standard_folders(self._mount_point)
         pass
 
     def get_ipc_port(self, idx):
@@ -199,8 +208,64 @@ class Config:
         """ get inverted DEBUG_MODE variable """
         return not self.is_debug_mode()
 
+    def check_external_disk(self, drive_label):
+        """
+        check if drive(DRIVE_LABEL or Volume Name) is connected
+        if True: return mount point
+        """
+        try:
+            # check if external disk is connected
+            output = subprocess.check_output(['mount'])
+            output = output.decode("utf-8")
+            lines = output.split("\n")
+            for line in lines:
+                if drive_label in line:
+                    device_node = line.split()[0]  # Device Node, last part: device id
+                    mount_point = line.split()[2]  # Mount Point
+                    return mount_point
+        except BaseException as err:
+            pass
+        return None
+
+    def read_external_disk(self, mount_point):
+        # read files & folders in the mount point
+        try:
+            contents = os.listdir(mount_point)
+            return contents
+        except BaseException as err:
+            pass
+        return None
+
+    def make_standard_folders(self, mount_point):
+        """ mkdir netcam, netcam/logs and /netcam/videos """
+        folders = ['netcam', 'netcam/logs', 'netcam/videos']
+        try:
+            for folder in folders:
+                path = os.path.join(mount_point, folder)
+                os.mkdir(path)
+            #
+            return True
+        except BaseException as err:
+            pass
+        return False
+
+    def check_disk_capacity(self, mount_point):
+        """ get drive capacity """
+        stats = shutil.disk_usage(mount_point)
+        hrgb = []
+        for stat in stats:
+            hrgb.append(round(stat / 1000000000, 2))  # GB
+            pass
+        return hrgb  # list: total, used, free in GigaBytes
+
     def get_standard_path(self):
-        """ get the path for the 'netcam' folder for wring to netcam/logs and netcam/videos """
+        """
+            get the path for the 'netcam' folder, for wring to netcam/logs and netcam/videos
+            1. The external drive always has precedence over the local drive.
+            2. The external drive must be mounted prior to usage by this app.
+        """
+        if self._mount_point is not None:
+            return self._mount_point+'/netcam/'
         if self.is_debug_mode():
             return self.DEVELOPMENT_PATH
         else:
