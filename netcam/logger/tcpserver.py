@@ -9,7 +9,7 @@ import logging.handlers
 import socketserver
 import struct
 import threading
-
+import os
 
 class LogRecordStreamHandler(socketserver.StreamRequestHandler):
     """
@@ -103,3 +103,10 @@ class Tcpserver(threading.Thread):
         """ stop running this thread, called when main thread terminates """
         self._tcpserver.abort = 1
         pass # continue
+
+
+if __name__ == '__main__':
+    print(
+        'So sorry, the ' +
+        os.path.basename(__file__) +
+        ' module does not run as a standalone.')

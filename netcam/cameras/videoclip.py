@@ -6,6 +6,7 @@ import threading
 import collections
 from datetime import datetime
 from enum import Enum
+from netcam.database import database
 
 BUFFER = 10 # must be larger than PREFIX or POSTFIX
 PREFIX = 4  # frames before first motion detected
@@ -32,6 +33,7 @@ class VideoClip(threading.Thread):
         self.logger = lggr # logger for this camera
         self.fifo = collections.deque([], maxlen=BUFFER) # FIFO queue with [10] frames
         self.filename = '' # current filename
+        self.timestamp = '' # timestamp of current file
         self.keep_running = True
         self.nfps = cnfg.get_nominal_fps(idx) # nominal frames per second
         self.vout = None # VideoWriter object
@@ -39,10 +41,11 @@ class VideoClip(threading.Thread):
         self._rcount = 0
         self._pixel_areas = []
         self._frame_counters = []
+        self.db = database.Database() # sqlite3 database (register video files)
 
     def _open_file(self, frame):
         """ open file for writing, order of height, width is critical """
-        self.filename = self.cnfg.get_video_filename(self.idx)
+        self.filename, self.timestamp = self.cnfg.get_video_filename(self.idx)
         self.logger.debug('>>> open video file '+self.filename)
         width, height = frame.shape[0], frame.shape[1]
         fourcc = cv2.VideoWriter_fourcc(*'MJPG')
@@ -59,7 +62,11 @@ class VideoClip(threading.Thread):
     def _close_file(self, qpct):
         """ close the open file """
         if qpct > 0.0:
-            self.logger.debug('<<< close video file '+self.filename+', QA: '+str(round(qpct,1))+'%.')
+            qa = str(round(qpct,1))
+            frms = len(self._frame_counters)
+            dt = self.timestamp.replace('.', '') # remove dots
+            self.logger.debug('<<< close video file '+self.filename+', QA: '+qa+'%.')
+            self.db.set_clip(self.filename, self.idx, dt, {"qa":qa, "frms": frms})
         if self.vout is not None:
             self.vout.release()
             self.vout = None

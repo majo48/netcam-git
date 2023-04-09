@@ -284,7 +284,7 @@ class Config:
         fname = fname.replace("?1", str(idx))
         dt = datetime.now().strftime('%Y.%m.%d.%H.%M.%S')
         fname = fname.replace("?2", dt)
-        return fname # video file name for recorder 'idx'
+        return fname, dt # video file name and timestamp for recorder 'idx'
 
     def get_flask_secret(self):
         """ get the Flask secret for the session variable """
