@@ -42,15 +42,47 @@ class VideoClip(threading.Thread):
         self._pixel_areas = []
         self._frame_counters = []
         self.db = database.Database() # sqlite3 database (register video files)
+        self._max_pixel_area = 0 # pixel area with motion detected
+        self._max_frame = None # frame with max motion area
+
+    def _set_snapshot(self, pixel_area, current_frame):
+        """ take a snapshot with a maximum of motion """
+        if pixel_area > self._max_pixel_area:
+            self._max_pixel_area = pixel_area
+            self._max_frame = current_frame  # snapshot
+        pass
+
+    def _reset_snapshot(self):
+        """ delete snapshot """
+        self._max_pixel_area = 0
+        self._max_frame = None
+
+    def _save_snapshot(self, filename):
+        """ save snapshot to jpeg file """
+        if self._max_frame is not None:
+            jpgname = filename.replace(".avi", ".jpg")
+            try:
+                cv2.imwrite(jpgname, self._max_frame)
+            except cv2.error:
+                self.logger.error('Cannot write to snapshot file: '+jpgname)
+        else:
+            self.logger.error('Snapshot frame is missing (None).')
+        pass
 
     def _open_file(self, frame):
         """ open file for writing, order of height, width is critical """
         self.filename, self.timestamp = self.cnfg.get_video_filename(self.idx)
-        self.logger.debug('>>> open video file '+self.filename)
-        width, height = frame.shape[0], frame.shape[1]
-        fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-        self.vout = cv2.VideoWriter()
-        success = self.vout.open(self.filename, fourcc, self.nfps, (height, width), True)
+        try:
+            self.logger.debug('>>> open video file '+self.filename)
+            width, height = frame.shape[0], frame.shape[1]
+            fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+            self.vout = cv2.VideoWriter()
+            success = self.vout.open(self.filename, fourcc, self.nfps, (height, width), True)
+        except cv2.error:
+            self.logger.error('Cannot write to video file: ' + self.filename)
+            success = False
+        #
+        self._reset_snapshot() # reset snapshot frame to None
         return success
 
     def _write_to_file(self, frame):
@@ -66,7 +98,8 @@ class VideoClip(threading.Thread):
             frms = len(self._frame_counters)
             dt = self.timestamp.replace('.', '') # remove dots
             self.logger.debug('<<< close video file '+self.filename+', QA: '+qa+'%.')
-            self.db.set_clip(self.filename, self.idx, dt, {"qa":qa, "frms": frms})
+            self.db.set_clip(self.filename, self.idx, dt, {"qa":qa, "frms": frms}) # register clip
+            self._save_snapshot(self.filename) # save snapshot frame to file
         if self.vout is not None:
             self.vout.release()
             self.vout = None
@@ -166,6 +199,9 @@ class VideoClip(threading.Thread):
             # get right side frame from FIFO buffer and write to file conditionally
             self._record(motion_detected, pixel_area, self.fifo[-1])
             # self._record(motion_detected, pixel_area, frame) # [debug] w.o. green motion objects (boxes)
+
+            # set snapshot of maximum motion
+            if motion_detected: self._set_snapshot(pixel_area, decorated_frame) # or frame (w.o. green boxes)
             pass
 
         if self._rstate == Status.RECORDING.value or self._rstate == Status.STOPPING.value:
