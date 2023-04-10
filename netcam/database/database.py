@@ -30,6 +30,7 @@ class Database:
                 raise BaseException("Error: cannot build mandatory database 'netcam', table 'clips'!")
         pass
 
+    # ----------
     def _get_time_frame(self, fromhr, tohr):
         """ get timestamps now-fromhr and now-tohr  """
         now = datetime.now()
@@ -37,6 +38,7 @@ class Database:
         todt = now - timedelta(hours=tohr)
         return fromdt, todt
 
+    # ----------
     def get_clips(self, fromhr, tohr):
         """ get the list of clips created between fromhr and tohr """
         fromdt, todt = self._get_time_frame(fromhr, tohr)
@@ -49,22 +51,11 @@ class Database:
             cur.execute(sql, (fromdts, todts))
             return cur.fetchall()
 
-    def get_clips_last_2hr(self):
-        """ get list of clips from the last 2 hours """
-        return self.get_clips(0,2)
+    def get_clips_last_hrs(self, hrs):
+        """ get list of clips from the last 'hrs' hours """
+        return self.get_clips(0,hrs)
 
-    def get_clips_last_6hr(self):
-        """ get list of clips from the last 2..6 hours """
-        return self.get_clips(2,6)
-
-    def get_clips_last_12hr(self):
-        """ get list of clips from the last 6..12 hours """
-        return self.get_clips(6,12)
-
-    def get_clips_last_24hr(self):
-        """ get list of clips from the last 12..24 hours """
-        return self.get_clips(12,24)
-
+    # ----------
     def set_clip(self, file, idx, ymdhms, infos):
         """ register clip in the database as soon as the file(clip) is closed
               filename: fully qualified filename and -path
@@ -79,7 +70,7 @@ class Database:
             con.commit() # close transaction
         pass
 
-
+# ----------
 if __name__ == '__main__':
     print(
         'So sorry, the ' +
