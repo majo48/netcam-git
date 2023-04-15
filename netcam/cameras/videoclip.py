@@ -1,16 +1,17 @@
 # Copyright (c) 2022 Martin Jonasse, Zug, Switzerland
 
+import time
 import cv2
 import os
 import threading
 import collections
-from datetime import datetime
 from enum import Enum
 from netcam.database import database
 
 BUFFER = 10 # must be larger than PREFIX or POSTFIX
 PREFIX = 4  # frames before first motion detected
 POSTFIX = 4 # frames after last motion detected
+
 
 class Status(Enum):
     BEGIN = 0
@@ -19,6 +20,27 @@ class Status(Enum):
     RECORDING = 3
     STOPPING = 4
     END = 5
+
+
+class Snapshot(threading.Thread):
+    """ threading daemon for writing a snapshot to file (memory) """
+
+    def __init__(self, frame, filename, logger):
+        """ initialize snapshot class """
+        threading.Thread.__init__(self)
+        self.frame = frame
+        self.filename = filename
+        self.logger = logger
+
+    def run(self):
+        """ write snapshot to file, then terminate """
+        time.sleep(1/100) # wait 10 msecs before writing to file
+        try:
+            cv2.imwrite(self.filename, self.frame)
+        except cv2.error:
+            self.logger.error('Cannot write to snapshot file: ' + self.filename)
+        return # finish thread
+
 
 class VideoClip(threading.Thread):
     """ class for making video clips for one physical video cameras """
@@ -61,10 +83,13 @@ class VideoClip(threading.Thread):
         """ save snapshot to jpeg file """
         if self._max_frame is not None:
             jpgname = filename.replace(".avi", ".jpg")
-            try:
-                cv2.imwrite(jpgname, self._max_frame)
-            except cv2.error:
-                self.logger.error('Cannot write to snapshot file: '+jpgname)
+#            try:
+#                cv2.imwrite(jpgname, self._max_frame)
+#            except cv2.error:
+#                self.logger.error('Cannot write to snapshot file: '+jpgname)
+            snpsht = Snapshot(self._max_frame, jpgname, self.logger)
+            snpsht.daemon = True
+            snpsht.start()
         else:
             self.logger.error('Snapshot frame is missing (None).')
         pass
@@ -93,16 +118,21 @@ class VideoClip(threading.Thread):
 
     def _close_file(self, qpct):
         """ close the open file """
+        # close video file
+        if self.vout is not None:
+            self.vout.release()
+            self.vout = None
+        # build statistics
         if qpct > 0.0:
             qa = str(round(qpct,1))
             frms = len(self._frame_counters)
             dt = self.timestamp.replace('.', '') # remove dots
-            self.logger.debug('<<< close video file '+self.filename+', QA: '+qa+'%.')
-            self.db.set_clip(self.filename, self.idx, dt, {"qa":qa, "frms": frms}) # register clip
-            self._save_snapshot(self.filename) # save snapshot frame to file
-        if self.vout is not None:
-            self.vout.release()
-            self.vout = None
+            # register clip in database
+            self.db.set_clip(self.filename, self.idx, dt, {"qa":qa, "frms": frms})
+            # log closure event
+            self.logger.debug('<<< close video file '+self.filename+', QA: '+qa+'%, frames: '+str(frms))
+            # save snapshot to file (average QA: 97.1% .. 98.4%)
+            self._save_snapshot(self.filename)
         pass
 
     def _check_quality(self):
