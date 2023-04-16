@@ -83,10 +83,6 @@ class VideoClip(threading.Thread):
         """ save snapshot to jpeg file """
         if self._max_frame is not None:
             jpgname = filename.replace(".avi", ".jpg")
-#            try:
-#                cv2.imwrite(jpgname, self._max_frame)
-#            except cv2.error:
-#                self.logger.error('Cannot write to snapshot file: '+jpgname)
             snpsht = Snapshot(self._max_frame, jpgname, self.logger)
             snpsht.daemon = True
             snpsht.start()

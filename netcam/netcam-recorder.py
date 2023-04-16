@@ -87,6 +87,11 @@ def setup_logger(recorder_index):
     socketHandler = logging.handlers.SocketHandler(
         'localhost', logging.handlers.DEFAULT_TCP_LOGGING_PORT)
     rootLogger.addHandler(socketHandler)
+    # create console handler
+    consoleHandler = logging.StreamHandler()
+    consoleHandler.setLevel(logging.DEBUG)
+    rootLogger.addHandler(consoleHandler)
+    #
     myname = 'recorder.'+str(recorder_index)
     return logging.getLogger(myname)
 
