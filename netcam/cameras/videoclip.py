@@ -23,7 +23,14 @@ class Status(Enum):
 
 
 class Snapshot(threading.Thread):
-    """ threading daemon for writing a snapshot to file (memory) """
+    """
+    threading daemon for writing a snapshot to file (memory)
+    NOTE/MEASUREMENTS:
+        1. writing snapshot in same thread: QA is 97.15% average
+        2. writing snapshot in other thread: QA is 98.25% average
+        3. writing snapshot in other process: QA is 98.44% average
+           choose: write snapshot in other thread (keep it simple)
+    """
 
     def __init__(self, frame, filename, logger):
         """ initialize snapshot class """
@@ -127,7 +134,7 @@ class VideoClip(threading.Thread):
             self.db.set_clip(self.filename, self.idx, dt, {"qa":qa, "frms": frms})
             # log closure event
             self.logger.debug('<<< close video file '+self.filename+', QA: '+qa+'%, frames: '+str(frms))
-            # save snapshot to file (average QA: 97.1% .. 98.4%)
+            # save snapshot to file
             self._save_snapshot(self.filename)
         pass
 
