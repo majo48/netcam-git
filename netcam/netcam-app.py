@@ -17,7 +17,6 @@ from flask import session
 from flask import request
 from cameras import config
 from logger import tcpserver
-import logging
 import threading
 from threading import current_thread
 from multiprocessing.connection import Client
@@ -25,6 +24,8 @@ import cv2
 import sys
 import uuid
 import subprocess
+
+# FLASK CODE SECTION ===================================================
 
 app = Flask(__name__)
 
@@ -147,31 +148,31 @@ def tiles():
     return rsp
 
 # -----------------------------------------------------------
-@app.route("/menu/clips")
-def menu_clips():
-    template = 'menu.clips.html'
+@app.route("/clips")
+@app.route("/clips/<index>")
+def clips(index=''):
+    template = 'clips.html'
+    infos = get_infos(index)
     rsp = make_response(
         render_template(
             template_name_or_list=template,
             navigation={
                 "icon": "cross",
-                "url": url_for("home", _external=True)}
+                "url": url_for("home", _external=True)},
+            attributes={
+                "date": index,
+                "infos": infos
+            }
         ))
     return rsp
 
-# -----------------------------------------------------------
-@app.route("/clips/<period>")
-def clips(period):
-    template = 'clips.html'
-    rsp = make_response(
-        render_template(
-            template_name_or_list=template,
-            period=period,
-            navigation={
-                "icon": "cross",
-                "url": url_for("home", _external=True)}
-        ))
-    return rsp
+def get_infos(idx):
+    """ get the infos for video clips of one day """
+    if idx == '' or idx is None:
+        return {} # todo get these infos from the database: date, weekday, no. of clips
+    else:
+        # get the infos of all videoclips for idx
+        return {} # todo get these infos from the database: all video files & attributes for day 'idx'
 
 # -----------------------------------------------------------
 @app.route("/clip/<clipdate>/<cliptime>")
@@ -306,7 +307,7 @@ def get_log_items(index):
         log_items.append('No log items available.')
     return log_items
 
-# ===========================================================
+# MAIN CODE SECTION ===========================================================
 
 def get_process_infos(key):
     """ get name + index of each netcam-recorder.py application running as a process """
