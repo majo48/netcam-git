@@ -61,7 +61,7 @@ class Camera(threading.Thread):
                 self.set_connection_problem()
                 time.sleep(1)
             else:
-                self.logger.info(">>> Started video stream in " + threading.currentThread().getName())
+                self.logger.info(">>> Started video streaming in " + threading.currentThread().getName())
                 stream = cv2.VideoCapture(self.rtsp_url)
                 self.skipped = 0 # reset skip counter
                 while self.keep_running:
@@ -84,7 +84,7 @@ class Camera(threading.Thread):
 
                 cv2.destroyAllWindows()
                 stream.release()
-                self.logger.info("<<< Stopped video stream in " + threading.currentThread().getName())
+                self.logger.info("<<< Stopped video streaming in " + threading.currentThread().getName())
                 if self.keep_running:
                     self._sleep(WAIT_LONG)  # delay, before trying again
 

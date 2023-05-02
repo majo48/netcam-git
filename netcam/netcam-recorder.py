@@ -30,17 +30,17 @@ def _get_camera_info():
 
 def run_ipc_server(lggr):
     """
-    inter process communication:
+    inter process communication (in main thread):
         client: open connection, send command, receive answer, close connection
         server: open connection, (EOF) wait for cmd, send answer, repeat EOF ...
     """
     terminate_origin = 'n/a'
     address = ('localhost', cnfg.get_ipc_port(recorder_index))  # AF_INET - TCP socket
     listener = Listener(address, authkey=cnfg.get_ipc_authkey())
-    while True:
+    while True: # outer loop
         try:
             conn = listener.accept()
-            while True:
+            while True: # inner loop
                 msg = conn.recv()
                 # do something with msg
                 if msg == 'terminate!':
@@ -49,14 +49,16 @@ def run_ipc_server(lggr):
                     terminate_origin = 'ipc'
                     # close connection and kill all threads in this app
                     conn.close()
-                    break
+                    break # end inner loop
                 elif msg == 'information?':
                     lggr.debug('**** IPC connection PROVIDE INFORMATION command.')
                     conn.send(_get_camera_info()) # send to Flask application
                 else:
                     lggr.error('IPC received illegal verb: '+msg)
                     conn.send('Unknown verb: '+msg) # send to Flask application
-                pass
+                continue # try again (inner loop)
+            # end of inner loop
+            if terminate_origin == 'ipc': break # end outer loop
 
         except EOFError:
             # client closed connection
@@ -65,10 +67,12 @@ def run_ipc_server(lggr):
 
         except KeyboardInterrupt:
             terminate_origin = 'keyboard'
-            lggr.debug('<<<< IPC connection closed (TERMINATE command from '+terminate_origin+').')
             listener.close()
-            break
-    pass # end while
+            break # end outer loop
+        pass # try again (outer loop)
+    #
+    lggr.debug('<<<< IPC connection closed (TERMINATE command from '+terminate_origin+').')
+    pass # end of outer loop
 
 def parse_cli():
     """ parse the commandline: python3 netcam-recorder.py idx """
