@@ -24,10 +24,17 @@ import cv2
 import sys
 import uuid
 import subprocess
+from netcam.database import database
+from datetime import datetime
+import json
 
 # FLASK CODE SECTION ===================================================
 
 app = Flask(__name__)
+
+# CONSTANT DECLARATIONS:
+
+WEEKDAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
 # -----------------------------------------------------------
 @app.route("/")
@@ -166,21 +173,47 @@ def clips(index=''):
         ))
     return rsp
 
-def get_infos(idx):
-    """ get the infos for video clips of one day """
-    if idx == '' or idx is None:
-        return {} # todo get these infos from the database: date, weekday, no. of clips
+def get_weekday(dtstrng):
+    """ convert date string to the weekday: Monday, Tuesday, etc. """
+    date_object = datetime.strptime(dtstrng, "%Y-%m-%d")
+    day_of_week = date_object.weekday() # integer: where 0 is Monday
+    return WEEKDAYS[day_of_week]
+
+def get_infos(day):
+    """ get the infos for video clips """
+    infs = []
+    db = database.Database()
+    if day == '' or day is None:
+        rows = db.get_clips_per_day()
+        for row in rows:
+            key = row[0]
+            ymd = key[0:4]+'-'+key[4:6]+'-'+key[6:8]
+            wkdy = get_weekday(ymd)
+            cnt = str(row[1])
+            infs.append((key, wkdy, ymd, cnt)) # tuple: key(hidden), weekday, date string, counter
+        return infs
     else:
-        # get the infos of all videoclips for idx
-        return {} # todo get these infos from the database: all video files & attributes for day 'idx'
+        # get the infos of all videoclips for day
+        rows = db.get_clips_for_day(day)
+        for row in rows:
+            fname = row[0] # filename
+            idx = row[1] # idx
+            key = row[2] # ymdhms
+            tod = key[8:10]+':'+key[10:12]+':'+key[12:]
+            inf = row[3]
+            dctny = json.loads(inf.replace("'", '"'))
+            qa = dctny['qa']
+            frms = dctny['frms']
+            infs.append((key, tod, str(frms), str(idx) )) # tuple: key(hidden), time of day, no of frames, camera number
+        return infs
 
 # -----------------------------------------------------------
-@app.route("/clip/<clipdate>/<cliptime>")
-def clip(clipdate, cliptime):
+@app.route("/clip")
+@app.route("/clip/<clipdatetime>")
+def clip(clipdatetime=''):
     """
-    render the videoclip defined by clipdate and cliptime
-    :param clipdate: string, format: yyyy-mm-dd
-    :param cliptime: string, format: hh:mm:ss.mmm
+    render the videoclip defined by clipdatetime
+    :param clipdatetime: string, format: yyyymmddhhmmss
     :return: template rendered with information
     """
     template = 'clip.html'

@@ -39,6 +39,36 @@ class Database:
         return fromdt, todt
 
     # ----------
+    def _get_rows(self, sql):
+        """ get all rows for the sql statement """
+        with sqlite3.connect(self.DBFILE) as con:
+            cur = con.cursor()
+            cur.execute(sql)
+            return cur.fetchall()
+
+    # ----------
+    def get_clips_per_day(self):
+        """ get the number of clips, by date, descending """
+        sql = """
+          SELECT ymd, COUNT(ymd) as clps
+          FROM (SELECT SUBSTR(CAST(ymdhms AS varchar(14)),1,8) as 'ymd' FROM clips) as days
+          GROUP BY ymd
+          ORDER BY ymd DESC
+        """
+        return self._get_rows(sql)
+
+    # ----------
+    def get_clips_for_day(self, idx):
+        """ get clip data for day 'idx' (yyyymmdd) """
+        sql = """
+        SELECT * FROM clips
+        WHERE SUBSTR(CAST(ymdhms AS varchar(14)),1,8) = '?'
+        ORDER BY ymdhms DESC
+        """
+        sql = sql.replace("?", idx)
+        return self._get_rows(sql)
+
+    # ----------
     def get_clips(self, fromhr, tohr):
         """ get the list of clips created between fromhr and tohr """
         fromdt, todt = self._get_time_frame(fromhr, tohr)
