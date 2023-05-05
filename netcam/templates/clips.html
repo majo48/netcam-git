@@ -38,9 +38,17 @@
     {% for info in attributes.infos %}
       <tr>
       {% if not attributes.date|length %}
-        <td><a href="{{ url_for('clips') }}/{{info.0}}">{{info.0}}</a></td>
+        <td style="text-align:center;">
+          <a href="{{ url_for('clips') }}/{{info.0}}">
+            <img src="/static/play.png" width="20" height="20">
+          </a>
+        </td>
       {% else %}
-        <td><a href="{{ url_for('clip') }}/{{info.0}}">{{info.0}}</a></td>
+        <td style="text-align:center;">
+          <a href="{{ url_for('clip', _external=True) }}/{{info.0}}">
+            <img src="/static/play.png" width="20" height="20">
+          </a>
+        </td>
       {% endif %}
         <td>{{info.1}}</td>
         <td>{{info.2}}</td>
