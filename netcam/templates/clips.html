@@ -11,6 +11,7 @@
     width: 100pt;
     text-align: left;
     background: #08AEEA;
+    color: black;
   }
   .clipstabl td{
     text-align: left;
@@ -24,7 +25,7 @@
         <th>hyperlink</th>
         <th>weekday</th>
         <th>date</th>
-        <th>counter</th>
+        <th>clips</th>
       </tr>
     {% else %}
       {# all dates: tuple (key(hidden), time of day, no of frames, camera number #}
@@ -32,7 +33,7 @@
         <th>hyperlink</th>
         <th>time</th>
         <th>frames</th>
-        <th>camera</th>
+        <th>camera no.</th>
       </tr>
     {% endif %}
     {% for info in attributes.infos %}
