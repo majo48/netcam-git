@@ -209,22 +209,40 @@ def get_infos(day):
 
 # -----------------------------------------------------------
 @app.route("/clip")
-@app.route("/clip/<clipdatetime>")
-def clip(clipdatetime=''):
+@app.route("/clip/<key>")
+def clip(key=''):
     """
-    render the videoclip defined by clipdatetime
-    :param clipdatetime: string, format: yyyymmddhhmmss
+    render the videoclip defined by the clip date time
+    :param key: string, format: yyyymmddhhmmss
     :return: template rendered with information
     """
     template = 'clip.html'
     rsp = make_response(
         render_template(
             template_name_or_list=template,
+            key=key,
             navigation={
                 "icon": "cross",
                 "url": url_for("home", _external=True)}
         ))
     return rsp
+
+@app.route("/picture_feed/<key>")
+def picture_feed(key):
+    """ display picture 'path' on web client """
+    from flask import send_file
+    imgpath = get_image_path(key, type=".jpg")
+    return send_file(imgpath, mimetype='image/jpg')
+
+def get_image_path(key, type=".avi"):
+    """ get the path to the image which is associated with key """
+    db = database.Database()
+    dict = db.get_clip(key)
+    avi= dict[0][0]
+    if type == ".avi":
+        return avi
+    else:
+        return avi.replace(".avi", type)
 
 # -----------------------------------------------------------
 @app.route("/states")

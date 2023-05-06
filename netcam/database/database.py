@@ -69,21 +69,14 @@ class Database:
         return self._get_rows(sql)
 
     # ----------
-    def get_clips(self, fromhr, tohr):
+    def get_clip(self, ymdhms):
         """ get the list of clips created between fromhr and tohr """
-        fromdt, todt = self._get_time_frame(fromhr, tohr)
-        fromdts = fromdt.strftime("%Y%m%d%H%M%S")
-        todts = todt.strftime("%Y%m%d%H%M%S")
-        # query database table clips
         with sqlite3.connect(self.DBFILE) as con:
             cur = con.cursor()
-            sql = "SELECT * FROM clips WHERE ymdhms <= ? AND ymdhms >= ?"
-            cur.execute(sql, (fromdts, todts))
+            sql = "SELECT * FROM clips WHERE ymdhms = ?"
+            cur.execute(sql, (ymdhms, ))
             return cur.fetchall()
 
-    def get_clips_last_hrs(self, hrs):
-        """ get list of clips from the last 'hrs' hours """
-        return self.get_clips(0,hrs)
 
     # ----------
     def set_clip(self, file, idx, ymdhms, infos):
