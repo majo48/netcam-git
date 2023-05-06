@@ -1,4 +1,5 @@
 # Copyright (c) 2022 Martin Jonasse, Zug, Switzerland
+import os.path
 
 # Flask webpage for displaying online and offline videos.
 # - Based upon some cheap ANNKE IP cameras (AN-I91BL0102),
@@ -15,6 +16,7 @@ from flask import url_for
 from flask import Response
 from flask import session
 from flask import request
+from flask import send_file
 from cameras import config
 from logger import tcpserver
 import threading
@@ -230,7 +232,6 @@ def clip(key=''):
 @app.route("/picture_feed/<key>")
 def picture_feed(key):
     """ display picture 'path' on web client """
-    from flask import send_file
     imgpath = get_image_path(key, type=".jpg")
     return send_file(imgpath, mimetype='image/jpg')
 
@@ -240,9 +241,16 @@ def get_image_path(key, type=".avi"):
     dict = db.get_clip(key)
     avi= dict[0][0]
     if type == ".avi":
-        return avi
+        if os.path.isfile(avi):
+            return avi
+        else:
+            return app.root_path + "/static/lightning.jpg"
     else:
-        return avi.replace(".avi", type)
+        jpg = avi.replace(".avi", type)
+        if os.path.isfile(jpg):
+            return jpg
+        else:
+            return app.root_path+"/static/lightning.jpg"
 
 # -----------------------------------------------------------
 @app.route("/states")
