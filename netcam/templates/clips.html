@@ -17,7 +17,12 @@
     text-align: left;
   }
 </style>
-<div style="padding: 16px; margin-top: 30px;">
+<div>
+  {% if not attributes.date|length %}
+    <p style="text-align: center">{{attributes.infos|length}} days</p>
+  {% else %}
+    <p style="text-align: center">{{attributes.date[0:4]}}-{{attributes.date[4:6]}}-{{attributes.date[6:]}}</p>
+  {% endif %}
   <table class="clipstabl">
     {% if not attributes.date|length %}
       {# all dates: tuple (key(hidden), weekday, date string, counter) #}
