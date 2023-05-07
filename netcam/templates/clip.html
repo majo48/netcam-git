@@ -1,6 +1,67 @@
 {# Copyright (c) 2022 Martin Jonasse, Zug, Switzerland #}
 {% extends "base.html" %}
 {% block content %}
+<style>
+    .clipbar {
+        overflow: hidden;
+        background-color: black;
+        position: fixed;
+        left: 50%;
+        width: 200px;
+        margin-left: -100px;
+        bottom: 30px;
+    }
+    .clipbar table {
+        margin: 0px;
+        margin-left: auto;
+        margin-right:auto;
+    }
+    .clipbar table tr {
+        margin: 0px;
+    }
+    .clipbar table td {
+        margin: 0px;
+        text-align: center;
+    }
+    .clipbar a {
+        float: left;
+        display: block;
+        color: orange;
+        text-align: center;
+        padding: 14px 16px;
+        text-decoration: none;
+        font-size: 17px;
+    }
+    .clipbar a:hover {
+        background: forestgreen;
+        color: black;
+    }
+    .clipbar img {
+        width: 20px;
+        height: 20px;
+    }
+</style>
+<div class="clipbar">
+  <table>
+    <tr>
+      <td>
+        <a href="{{url_for('clip')}}/{{key}}/previous">
+          <img src="/static/left-angle.png">
+        </a>
+      </td>
+      <td>
+        <a href="{{url_for('clip')}}/{{key}}/play">
+          <img src="/static/play.png">
+        </a>
+      </td>
+      <td>
+        <a href="{{url_for('clip')}}/{{key}}/next">
+          <img src="/static/right-angle.png">
+        </a>
+      </td>
+    </tr>
+  </table>
+</div>
 <img src="/picture_feed/{{key}}"
      width="100%" />
 {% endblock content %}

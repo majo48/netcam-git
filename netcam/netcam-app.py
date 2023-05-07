@@ -212,12 +212,15 @@ def get_infos(day):
 # -----------------------------------------------------------
 @app.route("/clip")
 @app.route("/clip/<key>")
-def clip(key=''):
+@app.route("/clip/<key>/<action>")
+def clip(key='', action=''):
     """
     render the videoclip defined by the clip date time
     :param key: string, format: yyyymmddhhmmss
     :return: template rendered with information
     """
+    if action != "":
+        app.logger.info('Clip action is: '+action)
     template = 'clip.html'
     rsp = make_response(
         render_template(
