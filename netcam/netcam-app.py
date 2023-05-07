@@ -219,13 +219,24 @@ def clip(key='', action=''):
     :param key: string, format: yyyymmddhhmmss
     :return: template rendered with information
     """
-    if action != "":
-        app.logger.info('Clip action is: '+action)
+    mode = 'jpg'
+    current_key = key
+    db = database.Database()
+    if action == "previous":
+        current_key = db.get_previous_clip_index(key)
+        pass
+    elif action == "next":
+        current_key = db.get_next_clip_index(key)
+        pass
+    elif action == "play":
+        mode = 'avi'
+    #
     template = 'clip.html'
     rsp = make_response(
         render_template(
             template_name_or_list=template,
-            key=key,
+            key=current_key,
+            mode=mode,
             navigation={
                 "icon": "cross",
                 "url": url_for("home", _external=True)}

@@ -69,14 +69,43 @@ class Database:
         return self._get_rows(sql)
 
     # ----------
+    def get_previous_clip_index(self, idx):
+        """ get the clip before clip 'idx' """
+        sql = """
+        SELECT * FROM clips
+        WHERE ymdhms < ?
+        ORDER BY ymdhms DESC LIMIT 1
+        """
+        sql = sql.replace("?", idx)
+        rows = self._get_rows(sql)
+        if len(rows) == 0:
+            return idx # no previous row
+        else:
+            return rows[0][2] # previous in database
+
+    # ----------
+    def get_next_clip_index(self, idx):
+        """ get the clip after clip 'idx' """
+        sql = """
+        SELECT * FROM clips
+        WHERE ymdhms > ?
+        ORDER BY ymdhms ASC LIMIT 1
+        """
+        sql = sql.replace("?", idx)
+        rows = self._get_rows(sql)
+        if len(rows) == 0:
+            return idx # no next row
+        else:
+            return rows[0][2] # next in database
+
+    # ----------
     def get_clip(self, ymdhms):
-        """ get the list of clips created between fromhr and tohr """
+        """ get the clip with index ydmhms """
         with sqlite3.connect(self.DBFILE) as con:
             cur = con.cursor()
             sql = "SELECT * FROM clips WHERE ymdhms = ?"
             cur.execute(sql, (ymdhms, ))
             return cur.fetchall()
-
 
     # ----------
     def set_clip(self, file, idx, ymdhms, infos):
