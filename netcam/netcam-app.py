@@ -245,9 +245,35 @@ def clip(key='', action=''):
 
 @app.route("/picture_feed/<key>")
 def picture_feed(key):
-    """ display picture 'path' on web client """
+    """ display picture 'key' on web client """
     imgpath = get_image_path(key, type=".jpg")
     return send_file(imgpath, mimetype='image/jpg')
+
+@app.route("/clip_feed/<key>")
+def clip_feed(key):
+    """ display video file """
+    return Response(
+        stream_with_context(generate_clips(key)),
+        mimetype='multipart/x-mixed-replace; boundary=frame')
+
+def generate_clips(key):
+    """ get frames from local video file """
+    imgpath = get_image_path(key, type=".avi")
+    vcap = cv2.VideoCapture(imgpath)
+    while vcap.isOpened():
+        try:
+            success, frame = vcap.read() # read one frame
+            if success and frame is not None:
+                rframe = cv2.resize(frame, (1920, 1080)) # use HD resolution for web
+                retval, buffer = cv2.imencode('.jpg', rframe)
+                # stream to template and user's browser
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+        except cv2.error:
+            app.logger.error("Cannot connect/open file "+imgpath)
+            break
+    vcap.release()
+    return
 
 def get_image_path(key, type=".avi"):
     """ get the path to the image which is associated with key """

@@ -62,6 +62,13 @@
     </tr>
   </table>
 </div>
+{% if mode == 'jpg' %}
 <img src="/picture_feed/{{key}}"
      width="100%" />
+{% elif mode == 'avi' %}
+<img src="/clip_feed/{{key}}"
+     width="100%" />
+{% else %}
+<p>Illegal mode: expected 'jpg' or 'avi', got '{{mode}}'.</p>
+{% endif %}
 {% endblock content %}
