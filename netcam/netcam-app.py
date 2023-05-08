@@ -269,6 +269,8 @@ def generate_clips(key):
                 # stream to template and user's browser
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+            else:
+                break # end of video file
         except cv2.error:
             app.logger.error("Cannot connect/open file "+imgpath)
             break
