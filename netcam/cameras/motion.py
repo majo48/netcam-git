@@ -26,14 +26,57 @@ class Motion:
         else:
             self.backSub = None
             raise ValueError('Illegal background subtraction methode defined.')
+        self._bounding_box = [0,0,0,0, False] # x, y, x2(x+w), y2(y+h), empty
         pass
 
     def __del__(self):
         """ delete instance of motions """
         pass
 
+    def _init_bounding_box(self):
+        """ initialize bounding box """
+        self._bounding_box[4] = False
+        return self._bounding_box
+
+    def _set_bounding_box(self, x, y, w, h):
+        """ set bounding box same as first value """
+        self._bounding_box[0] = x
+        self._bounding_box[1] = y
+        self._bounding_box[2] = x + w
+        self._bounding_box[3] = y + h
+        self._bounding_box[4] = True
+        return self._bounding_box
+
+    def _get_bounding_box(self, x,  y, w, h):
+        """ calculate the largest bounding box """
+        return self._bounding_box
+
+    def _update_bounding_box(self, x,  y, w, h):
+        """ calculate the largest bounding box """
+        if not self._bounding_box[4]:
+            return self._set_bounding_box(x, y, w, h)
+        #
+        if x < self._bounding_box[0]:
+            self._bounding_box[0] = x
+        if y < self._bounding_box[1]:
+            self._bounding_box[1] = y
+        if (x + w) > self._bounding_box[2]:
+            self._bounding_box[2] = x + w
+        if (y + h) > self._bounding_box[3]:
+            self._bounding_box[3] = y + h
+        return self._bounding_box
+
+    def _paint_bounding_box(self, frame):
+        """ add the bounding box to the frame """
+        x1, y1 = self.roi[0], self.roi[1] # region of interest
+        cv2.rectangle(frame,
+                      (self._bounding_box[0] + x1, self._bounding_box[1] + y1),
+                      (self._bounding_box[2] + x1, self._bounding_box[3] + y1),
+                      (0, 0, 255), 4) # red frame, 4 pixels thick
+        return self._bounding_box
+
     def parse_frame(self, frame):
-        """" parse ONE picture frame (roi) for motions """
+        """ parse ONE picture frame (roi) for motions """
         cropped_frame = frame[int(self.roi[1]):int(self.roi[1] + self.roi[3]),
                               int(self.roi[0]):int(self.roi[0] + self.roi[2])]
         # update the background model
@@ -48,15 +91,18 @@ class Motion:
         motion_detected = False
         x1, y1 = self.roi[0], self.roi[1]
         contours, hierarchy = cv2.findContours(fgMask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) # [default]
+        self._init_bounding_box()
         for i in range(len(contours)):
             x, y, w, h = cv2.boundingRect(contours[i])
             area = w * h # pixels
             if area > self.FG_MIN_AREA:
-                pixelarea += area
                 motion_detected = True
-                # decorate frame with little green boxes (motions)
-                cv2.rectangle(frame, (x+x1,y+y1), (x+x1+w,y+y1+h), (0, 255, 0), 4)
-        # finish
+                pixelarea += area
+                # [debug] decorate frame with little green boxes (motions)
+                # [debug] cv2.rectangle(frame, (x+x1,y+y1), (x+x1+w,y+y1+h), (0, 255, 0), 4)
+                self._update_bounding_box(x, y, w, h)
+        # finished
+        self._paint_bounding_box(frame) # one red box
         return motion_detected, pixelarea, frame
 
 

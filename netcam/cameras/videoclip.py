@@ -225,16 +225,14 @@ class VideoClip(threading.Thread):
 
             # detect motions
             motion_detected, pixel_area, decorated_frame = self.motion.parse_frame(frame)
+            if motion_detected:
+                self._set_snapshot(pixel_area, decorated_frame)  # set snapshot of maximum motion
 
             # add frame to left side of bounded FIFO buffer
-            self.fifo.appendleft((decorated_frame, frame_counter))
+            self.fifo.appendleft((frame, frame_counter))
 
             # get right side frame from FIFO buffer and write to file conditionally
             self._record(motion_detected, pixel_area, self.fifo[-1])
-            # self._record(motion_detected, pixel_area, frame) # [debug] w.o. green motion objects (boxes)
-
-            # set snapshot of maximum motion
-            if motion_detected: self._set_snapshot(pixel_area, decorated_frame) # or frame (w.o. green boxes)
             pass
 
         if self._rstate == Status.RECORDING.value or self._rstate == Status.STOPPING.value:

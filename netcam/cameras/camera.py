@@ -70,7 +70,6 @@ class Camera(threading.Thread):
                     except cv2.error:
                         self.logger.warning('<<< Connection problem (cv2).')
                         break
-
                     if (success == False) or (frm is None):
                         self.skipped += 1
                         if self.has_connection_problem():

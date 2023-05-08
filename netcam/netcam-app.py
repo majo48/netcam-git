@@ -198,13 +198,13 @@ def get_infos(day):
         # get the infos of all videoclips for day
         rows = db.get_clips_for_day(day)
         for row in rows:
-            fname = row[0] # filename
+            # fname = row[0] # filename
             idx = row[1] # idx
             key = row[2] # ymdhms
             tod = key[8:10]+':'+key[10:12]+':'+key[12:]
             inf = row[3]
             dctny = json.loads(inf.replace("'", '"'))
-            qa = dctny['qa']
+            # qa = dctny['qa']
             frms = dctny['frms']
             infs.append((key, tod, str(frms), str(idx) )) # tuple: key(hidden), time of day, no of frames, camera number
         return infs
@@ -224,13 +224,11 @@ def clip(key='', action=''):
     db = database.Database()
     if action == "previous":
         current_key = db.get_previous_clip_index(key)
-        pass
     elif action == "next":
         current_key = db.get_next_clip_index(key)
-        pass
     elif action == "play":
         mode = 'avi'
-    #
+    # ignore other actions
     template = 'clip.html'
     rsp = make_response(
         render_template(
